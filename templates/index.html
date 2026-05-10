@@ -128,15 +128,27 @@
                     <div>
                         <label for="url" class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 transition-colors">Video URL</label>
                         <div class="relative flex items-center">
+                            <!-- Increased pr-24 to accommodate two buttons -->
                             <input type="url" name="url" id="url" required 
                                 placeholder="https://www.instagram.com/reel/..." 
-                                class="block w-full pl-4 pr-14 py-4 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 focus:bg-white dark:focus:bg-gray-600 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 sm:text-base transition-all duration-200 outline-none">
+                                class="block w-full pl-4 pr-24 py-4 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 focus:bg-white dark:focus:bg-gray-600 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 sm:text-base transition-all duration-200 outline-none">
                             
-                            <button type="button" id="pasteBtn" aria-label="Paste URL" class="absolute right-2 p-2.5 text-gray-400 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 focus:text-pink-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none transition-colors touch-manipulation">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                                </svg>
-                            </button>
+                            <!-- Container for right-side icons -->
+                            <div class="absolute right-2 flex items-center">
+                                <!-- Clear Button (Cross Icon) -->
+                                <button type="button" id="clearBtn" aria-label="Clear URL" class="hidden p-2 text-gray-400 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 focus:text-red-500 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none transition-colors touch-manipulation">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+
+                                <!-- Paste Button -->
+                                <button type="button" id="pasteBtn" aria-label="Paste URL" class="p-2 text-gray-400 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 focus:text-pink-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none transition-colors touch-manipulation">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     
@@ -196,15 +208,16 @@
     </div>
 
     <!-- Copyright Logo strictly positioned below the card container - Use Absolute URL for Blogger -->
-    <img src="/checklovetools.png" alt="Check Love Tools Logo" class="mt-8 h-8 object-contain opacity-80 hover:opacity-100 dark:brightness-110 transition-all flex-shrink-0">
+    <img src="https://jmkdownloader-production.up.railway.app/checklovetools.png" alt="Check Love Tools Logo" class="mt-8 h-8 object-contain opacity-80 hover:opacity-100 dark:brightness-110 transition-all flex-shrink-0">
 
     <script>
         // Define your deployed backend URL here so the frontend (Blogger) can hit the correct API endpoint
-        const BACKEND_URL = 'https://jmkdownloader.up.railway.app';
+        const BACKEND_URL = 'https://jmkdownloader-production.up.railway.app';
 
         document.addEventListener('DOMContentLoaded', () => {
             // Downloader Logic
             const form = document.getElementById('processForm');
+            const urlInput = document.getElementById('url');
             const submitBtn = document.getElementById('submitBtn');
             const btnText = document.getElementById('btnText');
             const fetchIcon = document.getElementById('fetchIcon');
@@ -225,6 +238,9 @@
             const dlLoadingSpinner = document.getElementById('dlLoadingSpinner');
             const cancelBtn = document.getElementById('cancelBtn');
             
+            const clearBtn = document.getElementById('clearBtn');
+            const pasteBtn = document.getElementById('pasteBtn');
+
             let currentToken = '';
 
             function showMessage(msg, isError = true) {
@@ -248,13 +264,28 @@
                 messageContainer.innerHTML = '';
             }
 
+            // Handle showing/hiding the clear button based on input content
+            urlInput.addEventListener('input', () => {
+                if (urlInput.value.length > 0) {
+                    clearBtn.classList.remove('hidden');
+                } else {
+                    clearBtn.classList.add('hidden');
+                }
+            });
+
+            // Clear input logic
+            clearBtn.addEventListener('click', () => {
+                urlInput.value = '';
+                clearBtn.classList.add('hidden');
+                urlInput.focus();
+            });
+
             // Step 1: Fetch metadata via API Without Page Reload
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 clearMessage();
                 
-                const urlInput = document.getElementById('url').value;
-                if(!urlInput) return;
+                if(!urlInput.value) return;
 
                 submitBtn.disabled = true;
                 submitBtn.classList.add('opacity-80', 'cursor-not-allowed');
@@ -361,19 +392,20 @@
             cancelBtn.addEventListener('click', () => {
                 step2.classList.add('hidden');
                 step1.classList.remove('hidden');
-                document.getElementById('url').value = '';
+                urlInput.value = '';
+                clearBtn.classList.add('hidden'); // Ensure clear button resets as well
                 clearMessage();
             });
 
             // Clipboard Paste Functionality
-            document.getElementById('pasteBtn').addEventListener('click', async () => {
+            pasteBtn.addEventListener('click', async () => {
                 try {
                     const text = await navigator.clipboard.readText();
                     if (text) {
-                        const inputField = document.getElementById('url');
-                        inputField.value = text;
-                        inputField.classList.add('ring-2', 'ring-pink-300');
-                        setTimeout(() => inputField.classList.remove('ring-2', 'ring-pink-300'), 500);
+                        urlInput.value = text;
+                        urlInput.classList.add('ring-2', 'ring-pink-300');
+                        setTimeout(() => urlInput.classList.remove('ring-2', 'ring-pink-300'), 500);
+                        clearBtn.classList.remove('hidden'); // Show clear button after pasting
                     }
                 } catch (err) {
                     console.error('Failed to read clipboard contents: ', err);
