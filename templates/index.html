@@ -6,8 +6,11 @@
     <title>InstaGrabber</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
+        // Tailwind config using default 'media' strategy for dark mode since manual toggle is removed
         tailwind.config = {
-            darkMode: 'class',
+            theme: {
+                extend: {},
+            },
         }
     </script>
     <style>
@@ -25,122 +28,151 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-    </style>
-    <!-- Prevent FOUC (Flash of Unstyled Content) and check localStorage for darkMode -->
-    <script>
-        if (localStorage.getItem('darkMode') === 'enabled' || (!('darkMode' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
+
+        /* Dual Spinning Instagram Border Styles */
+        .insta-border-container {
+            position: relative;
+            border-radius: 1.75rem; /* Slightly larger than the inner card's 1.5rem (3xl) */
+            padding: 4px; /* Border thickness */
+            overflow: hidden;
         }
-    </script>
+        .insta-border-container::before,
+        .insta-border-container::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(from 0deg, #fdf497, #fd5949, #d6249f, #285AEB, #fdf497);
+            z-index: 0;
+            transform-origin: center center;
+        }
+        .insta-border-container::before {
+            animation: spinCw 4s linear infinite;
+        }
+        .insta-border-container::after {
+            animation: spinCcw 6s linear infinite;
+            opacity: 0.5; /* Blend the two spinning layers */
+        }
+        .insta-inner-card {
+            position: relative;
+            z-index: 1;
+            border-radius: 1.5rem; /* rounded-3xl */
+        }
+        @keyframes spinCw {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes spinCcw {
+            0% { transform: rotate(360deg); }
+            100% { transform: rotate(0deg); }
+        }
+    </style>
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center min-h-screen font-sans antialiased text-gray-900 dark:text-gray-100 p-4 m-0 overflow-y-auto no-scrollbar transition-colors duration-300">
+<!-- Removed background colors (bg-gray-50/dark:bg-gray-900) and justify-center. Added justify-start and top padding (pt-8 sm:pt-16) -->
+<body class="flex flex-col items-center justify-start pt-8 sm:pt-16 min-h-screen font-sans antialiased text-gray-900 dark:text-gray-100 p-4 m-0 overflow-y-auto no-scrollbar transition-colors duration-300">
     
-    <!-- Theme Toggle Button -->
-    <button id="themeToggle" class="fixed top-4 right-4 p-2.5 rounded-full bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-pink-500 shadow-md transition-all z-50">
-        <svg id="theme-toggle-dark-icon" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
-        </svg>
-        <svg id="theme-toggle-light-icon" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-            <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4.22 1.32a1 1 0 011.415 0l.707.707a1 1 0 01-1.414 1.414l-.707-.707a1 1 0 010-1.414zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zm-1.32 4.22a1 1 0 010 1.415l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 0zM10 18a1 1 0 01-1-1v-1a1 1 0 112 0v1a1 1 0 01-1 1zm-4.22-1.32a1 1 0 01-1.415 0l-.707-.707a1 1 0 011.414-1.414l.707.707a1 1 0 010 1.414zM2 10a1 1 0 011-1h1a1 1 0 110 2H3a1 1 0 01-1-1zm1.32-4.22a1 1 0 010-1.415l.707-.707a1 1 0 011.414 1.414l-.707.707a1 1 0 01-1.414 0zM10 15a5 5 0 100-10 5 5 0 000 10z"></path>
-        </svg>
-    </button>
+    <div class="max-w-md w-full flex-shrink-0 transition-all duration-300">
+        <!-- Dual-spinning border wrapper -->
+        <div class="insta-border-container shadow-2xl">
+            <!-- Inner Card -->
+            <div class="insta-inner-card bg-white dark:bg-gray-800 p-6 sm:p-8 w-full h-full flex-shrink-0 transition-all duration-300">
+                
+                <!-- Header -->
+                <div class="text-center mb-8">
+                    <div class="inline-flex items-center justify-center mb-3">
+                        <!-- Modern Instagram-style SVG Icon -->
+                        <svg class="w-14 h-14" viewBox="0 0 24 24" fill="url(#ig-gradient)">
+                            <defs>
+                                <radialGradient id="ig-gradient" r="150%" cx="30%" cy="107%">
+                                    <stop stop-color="#fdf497" offset="0%" />
+                                    <stop stop-color="#fdf497" offset="5%" />
+                                    <stop stop-color="#fd5949" offset="45%" />
+                                    <stop stop-color="#d6249f" offset="60%" />
+                                    <stop stop-color="#285AEB" offset="90%" />
+                                </radialGradient>
+                            </defs>
+                            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+                        </svg>
+                    </div>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight transition-colors">InstaGrabber</h1>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-2 transition-colors">Download public Instagram videos instantly</p>
+                </div>
+                
+                <!-- Dynamic Messaging Container -->
+                <div id="messageContainer"></div>
 
-    <div class="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-3xl shadow-xl max-w-md w-full border border-gray-100 dark:border-gray-700 flex-shrink-0 transition-all duration-300">
-        
-        <!-- Header -->
-        <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center mb-3">
-                <!-- Modern Instagram-style SVG Icon -->
-                <svg class="w-14 h-14" viewBox="0 0 24 24" fill="url(#ig-gradient)">
-                    <defs>
-                        <radialGradient id="ig-gradient" r="150%" cx="30%" cy="107%">
-                            <stop stop-color="#fdf497" offset="0%" />
-                            <stop stop-color="#fdf497" offset="5%" />
-                            <stop stop-color="#fd5949" offset="45%" />
-                            <stop stop-color="#d6249f" offset="60%" />
-                            <stop stop-color="#285AEB" offset="90%" />
-                        </radialGradient>
-                    </defs>
-                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
-                </svg>
-            </div>
-            <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight transition-colors">InstaGrabber</h1>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-2 transition-colors">Download public Instagram videos instantly</p>
-        </div>
-        
-        <!-- Dynamic Messaging Container -->
-        <div id="messageContainer"></div>
-
-        <!-- Step 1: URL Input Form -->
-        <form id="processForm" class="space-y-6 block">
-            <div>
-                <label for="url" class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 transition-colors">Video URL</label>
-                <div class="relative flex items-center">
-                    <input type="url" name="url" id="url" required 
-                        placeholder="https://www.instagram.com/reel/..." 
-                        class="block w-full pl-4 pr-14 py-4 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 focus:bg-white dark:focus:bg-gray-600 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 sm:text-base transition-all duration-200 outline-none">
+                <!-- Step 1: URL Input Form -->
+                <form id="processForm" class="space-y-6 block">
+                    <div>
+                        <label for="url" class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 transition-colors">Video URL</label>
+                        <div class="relative flex items-center">
+                            <input type="url" name="url" id="url" required 
+                                placeholder="https://www.instagram.com/reel/..." 
+                                class="block w-full pl-4 pr-14 py-4 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 focus:bg-white dark:focus:bg-gray-600 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 sm:text-base transition-all duration-200 outline-none">
+                            
+                            <button type="button" id="pasteBtn" aria-label="Paste URL" class="absolute right-2 p-2.5 text-gray-400 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 focus:text-pink-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none transition-colors touch-manipulation">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
                     
-                    <button type="button" id="pasteBtn" aria-label="Paste URL" class="absolute right-2 p-2.5 text-gray-400 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 focus:text-pink-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none transition-colors touch-manipulation">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                    <button type="submit" id="submitBtn" class="w-full flex justify-center items-center py-4 px-4 border border-transparent rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 transition-all duration-300 transform active:scale-95 touch-manipulation">
+                        <svg id="fetchIcon" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        <span id="btnText">Fetch Video Info</span>
+                        
+                        <svg id="loadingSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
                     </button>
-                </div>
-            </div>
-            
-            <button type="submit" id="submitBtn" class="w-full flex justify-center items-center py-4 px-4 border border-transparent rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 transition-all duration-300 transform active:scale-95 touch-manipulation">
-                <svg id="fetchIcon" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
-                <span id="btnText">Fetch Video Info</span>
-                
-                <svg id="loadingSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-            </button>
-        </form>
+                </form>
 
-        <!-- Step 2: Metadata Display and Download Button -->
-        <div id="step2" class="space-y-6 hidden animate-fade-in-up">
-            <div class="relative rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-700 aspect-video shadow-inner transition-colors">
-                <img id="videoThumb" src="" alt="Video Thumbnail" class="w-full h-full object-cover hidden">
-                <div id="noThumbPlaceholder" class="flex items-center justify-center h-full text-gray-400 dark:text-gray-500">
-                    <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                </div>
-                
-                <!-- Overlay containing cleanly formatted title and filesize -->
-                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-                <div class="absolute bottom-0 left-0 p-4 w-full">
-                    <p id="videoTitle" class="text-white text-sm font-semibold line-clamp-2 drop-shadow-md mb-2"></p>
-                    <span id="videoSize" class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-pink-500/90 text-white backdrop-blur-sm shadow-sm"></span>
-                </div>
-            </div>
+                <!-- Step 2: Metadata Display and Download Button -->
+                <div id="step2" class="space-y-6 hidden animate-fade-in-up">
+                    <div class="relative rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-700 aspect-video shadow-inner transition-colors">
+                        <img id="videoThumb" src="" alt="Video Thumbnail" class="w-full h-full object-cover hidden">
+                        <div id="noThumbPlaceholder" class="flex items-center justify-center h-full text-gray-400 dark:text-gray-500">
+                            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                        
+                        <!-- Overlay containing cleanly formatted title and filesize -->
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                        <div class="absolute bottom-0 left-0 p-4 w-full">
+                            <p id="videoTitle" class="text-white text-sm font-semibold line-clamp-2 drop-shadow-md mb-2"></p>
+                            <span id="videoSize" class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-pink-500/90 text-white backdrop-blur-sm shadow-sm"></span>
+                        </div>
+                    </div>
 
-            <button type="button" id="finalDownloadBtn" class="w-full flex justify-center items-center py-4 px-4 border border-transparent rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 transition-all duration-300 transform active:scale-95 touch-manipulation">
-                <svg id="dlBtnIcon" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                </svg>
-                <span id="dlBtnText">Download MP4</span>
+                    <button type="button" id="finalDownloadBtn" class="w-full flex justify-center items-center py-4 px-4 border border-transparent rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 transition-all duration-300 transform active:scale-95 touch-manipulation">
+                        <svg id="dlBtnIcon" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        <span id="dlBtnText">Download MP4</span>
+                        
+                        <svg id="dlLoadingSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </button>
+                    
+                    <div class="text-center">
+                        <button type="button" id="cancelBtn" class="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 touch-manipulation">
+                            Cancel & Try Another
+                        </button>
+                    </div>
+                </div>
                 
-                <svg id="dlLoadingSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-            </button>
-            
-            <div class="text-center">
-                <button type="button" id="cancelBtn" class="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 touch-manipulation">
-                    Cancel & Try Another
-                </button>
+                <p class="text-xs text-center text-gray-400 dark:text-gray-500 mt-6 leading-relaxed transition-colors">
+                    By downloading, you agree to respect copyright laws. Ensure the post is public.
+                </p>
             </div>
         </div>
-        
-        <p class="text-xs text-center text-gray-400 dark:text-gray-500 mt-6 leading-relaxed transition-colors">
-            By downloading, you agree to respect copyright laws. Ensure the post is public.
-        </p>
     </div>
 
     <!-- Copyright Logo strictly positioned below the card container -->
@@ -148,41 +180,6 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Theme Toggle Logic
-            const themeToggleBtn = document.getElementById('themeToggle');
-            const darkIcon = document.getElementById('theme-toggle-dark-icon');
-            const lightIcon = document.getElementById('theme-toggle-light-icon');
-
-            // Set initial icon based on HTML class set by the script in <head>
-            if (document.documentElement.classList.contains('dark')) {
-                lightIcon.classList.remove('hidden');
-            } else {
-                darkIcon.classList.remove('hidden');
-            }
-
-            themeToggleBtn.addEventListener('click', function() {
-                darkIcon.classList.toggle('hidden');
-                lightIcon.classList.toggle('hidden');
-
-                if (localStorage.getItem('darkMode')) {
-                    if (localStorage.getItem('darkMode') === 'disabled') {
-                        document.documentElement.classList.add('dark');
-                        localStorage.setItem('darkMode', 'enabled');
-                    } else {
-                        document.documentElement.classList.remove('dark');
-                        localStorage.setItem('darkMode', 'disabled');
-                    }
-                } else {
-                    if (document.documentElement.classList.contains('dark')) {
-                        document.documentElement.classList.remove('dark');
-                        localStorage.setItem('darkMode', 'disabled');
-                    } else {
-                        document.documentElement.classList.add('dark');
-                        localStorage.setItem('darkMode', 'enabled');
-                    }
-                }
-            });
-
             // Downloader Logic
             const form = document.getElementById('processForm');
             const submitBtn = document.getElementById('submitBtn');
