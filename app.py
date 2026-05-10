@@ -24,6 +24,10 @@ def download():
         flash('Please provide a valid Instagram URL.', 'error')
         return redirect(url_for('index'))
 
+    # Clean the URL (sometimes tracking parameters cause issues)
+    if '?' in url:
+        url = url.split('?')[0]
+
     # Create a temporary directory to store the video before sending
     temp_dir = tempfile.mkdtemp()
     
@@ -34,10 +38,13 @@ def download():
         'quiet': True,
         'no_warnings': True,
         'http_headers': {
-            # Adding a standard User-Agent helps avoid immediate blocks from the platform
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
     }
+
+    # If a cookies.txt file exists in the directory, use it to bypass Instagram's login wall
+    if os.path.exists('cookies.txt'):
+        ydl_opts['cookiefile'] = 'cookies.txt'
 
     try:
         # Extract and download the video
@@ -66,7 +73,7 @@ def download():
             io_stream = BytesIO(file_data)
             io_stream.seek(0)
             
-            # Clean up the temporary directory to save disk space on Railway
+            # Clean up the temporary directory to save disk space
             shutil.rmtree(temp_dir)
 
             # Serve the file directly to the user's browser
@@ -85,9 +92,9 @@ def download():
             
         # Parse common yt-dlp errors to provide user-friendly feedback
         if 'private video' in error_msg or 'requested format not available' in error_msg or 'video unavailable' in error_msg or 'login' in error_msg:
-            flash('This video is private, restricted, or the URL is invalid. Public videos only.', 'error')
+            flash('This video is private, restricted, or Instagram is blocking access. Try adding a cookies.txt file.', 'error')
         else:
-            flash('Unable to download this video. Please check the URL and try again.', 'error')
+            flash(f'Unable to download this video: {str(e)[:50]}... Please check the URL and try again.', 'error')
         return redirect(url_for('index'))
         
     except Exception as e:
