@@ -36,11 +36,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 // to the Cobalt API, bypassing strict browser Origin and CORS checks.
 app.post('/api/process', async (req, res) => {
     try {
-        const { url } = req.body;
+        const { url, ...otherParams } = req.body;
         
         if (!url) {
             return res.status(400).json({ error: 'URL is required' });
         }
+
+        console.log(`[PROXY] Forwarding request for URL: ${url}`);
 
         // Forward the request to the Cobalt API
         const response = await fetch(API_URL, {
@@ -48,12 +50,13 @@ app.post('/api/process', async (req, res) => {
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
-                // Some WAFs or Edge Routers block default Node fetch User-Agents with 400/403.
-                // Providing a standard browser User-Agent prevents this.
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+                // FIX: Removing the spoofed browser User-Agent. 
+                // Cobalt strictly checks browser user-agents for matching CORS Origin headers. 
+                // Using a programmatic agent bypasses this block and acts strictly as a backend client.
+                'User-Agent': 'NodeDownloaderProxy/1.0.0'
             },
-            // Forward the entire body to support any additional Cobalt v10 parameters
-            body: JSON.stringify(req.body)
+            // Forward the entire body to support any additional parameters
+            body: JSON.stringify({ url, ...otherParams })
         });
 
         // Safely parse the response. If it's a 400 from a WAF/Router, it might be HTML, not JSON.
@@ -63,21 +66,22 @@ app.post('/api/process', async (req, res) => {
         try {
             data = JSON.parse(responseText);
         } catch (parseError) {
-            console.error('Failed to parse Cobalt response as JSON. Raw response:', responseText.substring(0, 500));
+            console.error('[PROXY ERROR] Non-JSON response from Cobalt API:', responseText.substring(0, 300));
             return res.status(response.status).json({
                 status: 'error',
-                text: `Received non-JSON response from Cobalt API (HTTP ${response.status}). Check server logs or ensure API_URL is correct.`
+                text: `Received an invalid response from Cobalt API (HTTP ${response.status}). Check server logs or ensure API_URL is correct.`
             });
         }
 
         // Forward the HTTP status code from Cobalt
         if (!response.ok) {
+            console.error(`[COBALT ERROR - HTTP ${response.status}]:`, data);
             return res.status(response.status).json(data);
         }
 
         res.json(data);
     } catch (error) {
-        console.error('Cobalt API proxy error:', error);
+        console.error('[PROXY EXCEPTION]:', error.message);
         res.status(500).json({ status: 'error', text: 'Internal server proxy error. Check logs.' });
     }
 });
@@ -85,6 +89,16 @@ app.post('/api/process', async (req, res) => {
 // Fallback to serve the single-page application for any other route
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Add global error handlers to ensure the Railway container doesn't unexpectedly crash 
+// and stop the container due to an unhandled promise rejection.
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
 // Start the server bound to '0.0.0.0' so it accepts connections from Railway's edge proxy
