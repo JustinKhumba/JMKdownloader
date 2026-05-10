@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Video Downloader</title>
+    <!-- Utilizing Tailwind CSS via CDN for rapid, modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen font-sans antialiased text-gray-900">
+    
+    <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full mx-4 border border-gray-100">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-pink-100 mb-4">
+                <svg class="w-8 h-8 text-pink-600" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+                </svg>
+            </div>
+            <h1 class="text-2xl font-extrabold text-gray-900">IG Downloader</h1>
+            <p class="text-sm text-gray-500 mt-2">Download public Instagram videos instantly</p>
+        </div>
+        
+        <!-- Error / Success Messaging -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="mb-6 p-4 rounded-lg flex items-start 
+                  {% if category == 'error' %}bg-red-50 text-red-700 border border-red-100
+                  {% else %}bg-green-50 text-green-700 border border-green-100{% endif %}">
+                <svg class="w-5 h-5 mr-3 flex-shrink-0 {% if category == 'error' %}text-red-500{% else %}text-green-500{% endif %}" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                </svg>
+                <span class="text-sm font-medium">{{ message }}</span>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- Download Form -->
+        <form action="/download" method="POST" id="downloadForm" class="space-y-5">
+            <div>
+                <label for="url" class="block text-sm font-semibold text-gray-700 mb-1">Video URL</label>
+                <input type="url" name="url" id="url" required 
+                    placeholder="https://www.instagram.com/reel/..." 
+                    class="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-pink-500 focus:border-pink-500 sm:text-sm transition duration-200 outline-none">
+            </div>
+            
+            <button type="submit" id="submitBtn" class="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 transition duration-300 transform hover:-translate-y-0.5">
+                <svg id="downloadIcon" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                <span id="btnText">Download Video</span>
+                
+                <!-- Loading Spinner (Hidden by default) -->
+                <svg id="loadingSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </button>
+        </form>
+        
+        <p class="text-xs text-center text-gray-400 mt-6">
+            Make sure the post is public. Private videos cannot be downloaded.
+        </p>
+    </div>
+
+    <!-- Script to handle loading state UX -->
+    <script>
+        document.getElementById('downloadForm').addEventListener('submit', function() {
+            const btn = document.getElementById('submitBtn');
+            const text = document.getElementById('btnText');
+            const spinner = document.getElementById('loadingSpinner');
+            const icon = document.getElementById('downloadIcon');
+            
+            // Disable button to prevent double submission
+            btn.disabled = true;
+            btn.classList.add('opacity-80', 'cursor-not-allowed');
+            btn.classList.remove('hover:-translate-y-0.5');
+            
+            // Update UI to show processing state
+            text.textContent = 'Processing...';
+            icon.classList.add('hidden');
+            spinner.classList.remove('hidden');
+            
+            // Re-enable after 15 seconds as a fallback in case download fails silently or takes too long
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.classList.remove('opacity-80', 'cursor-not-allowed');
+                btn.classList.add('hover:-translate-y-0.5');
+                text.textContent = 'Download Video';
+                icon.classList.remove('hidden');
+                spinner.classList.add('hidden');
+            }, 15000);
+        });
+
+        // Reset UI if user uses back/forward browser cache
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                const btn = document.getElementById('submitBtn');
+                btn.disabled = false;
+                btn.classList.remove('opacity-80', 'cursor-not-allowed');
+                document.getElementById('btnText').textContent = 'Download Video';
+                document.getElementById('downloadIcon').classList.remove('hidden');
+                document.getElementById('loadingSpinner').classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
