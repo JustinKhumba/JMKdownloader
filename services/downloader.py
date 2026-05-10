@@ -7,7 +7,8 @@ def get_video_metadata(url: str) -> dict:
     """
     ydl_opts = {
         'quiet': True, 
-        'noplaylist': True
+        'noplaylist': True,
+        'cookiefile': 'cookies.txt'
     }
     
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -83,7 +84,8 @@ def download_video_file(url: str, format_id: str, temp_dir: str) -> str:
         'merge_output_format': 'mp4',
         'restrictfilenames': True, 
         'noplaylist': True,
-        'quiet': True
+        'quiet': True,
+        'cookiefile': 'cookies.txt'
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
