@@ -10,7 +10,7 @@ from itsdangerous import URLSafeTimedSerializer, BadSignature
 import yt_dlp
 
 app = Flask(__name__)
-# Enable CORS for all routes and allow all origins (*) so any Blogger site can communicate with the backend
+# Enable CORS for all routes and allow all origins
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 # A secret key is required for token serialization
@@ -21,13 +21,17 @@ serializer = URLSafeTimedSerializer(app.secret_key)
 
 @app.after_request
 def set_secure_headers(response):
-    """Implement robust security headers to prevent common web vulnerabilities."""
+    """Implement robust security headers and explicit CORS to prevent blocking."""
+    # Force explicit CORS headers on every response to ensure the browser never blocks it
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
     
     # Strict CSP allowing framing only from approved ancestors and restricting resources
-    # Added wildcard blogspot subdomains to allow embedding anywhere on Blogger
     csp = (
         "default-src 'self' *; "
         "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; "
@@ -44,13 +48,10 @@ def validate_instagram_url(url):
         return False
     try:
         parsed = urllib.parse.urlparse(url)
-        # Scheme must be explicitly HTTPS
         if parsed.scheme != 'https':
             return False
-        # Domain must exactly match Instagram
         if parsed.netloc not in ['instagram.com', 'www.instagram.com']:
             return False
-        # Path must start with allowed Instagram video routes
         valid_path_starts = ('/p/', '/reel/', '/reels/', '/tv/')
         if not parsed.path.startswith(valid_path_starts):
             return False
@@ -73,9 +74,13 @@ def serve_logo():
     """Serve the copyright logo directly from the templates directory."""
     return send_from_directory('templates', 'checklovetools.png')
 
-@app.route('/process', methods=['POST'])
+@app.route('/process', methods=['POST', 'OPTIONS'])
 def process():
     """Step 1: Extract video metadata (thumbnail, title, size) without downloading."""
+    # Explicitly handle CORS preflight OPTIONS requests
+    if request.method == 'OPTIONS':
+        return jsonify({'success': True}), 200
+
     url = request.form.get('url', '').strip()
     
     if not validate_instagram_url(url):
@@ -144,9 +149,13 @@ def process():
     except Exception as e:
         return jsonify({'success': False, 'message': 'An unexpected error occurred while processing the video.'})
 
-@app.route('/download/<token>', methods=['GET'])
+@app.route('/download/<token>', methods=['GET', 'OPTIONS'])
 def download(token):
-    """Step 2: Handle the actual video download using the validated token. Returns JSON on error for the SPA."""
+    """Step 2: Handle the actual video download using the validated token."""
+    # Explicitly handle CORS preflight OPTIONS requests
+    if request.method == 'OPTIONS':
+        return jsonify({'success': True}), 200
+
     try:
         # Decode the token (max age: 1 hour)
         url = serializer.loads(token, max_age=3600)
