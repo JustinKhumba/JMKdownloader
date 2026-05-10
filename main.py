@@ -137,20 +137,29 @@ HTML_CONTENT = """
             justify-content: center;
             align-items: center;
         }
-        .format-btn:hover, .format-btn:active { 
+        .format-btn:hover { 
             border-color: var(--primary); 
             background: #fef2f2; 
         }
+        .format-btn.selected {
+            border-color: var(--primary);
+            background: #fef2f2;
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+        }
         .format-btn .res { font-weight: 600; font-size: 15px; color: #111827; }
         .format-btn .ext { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+        .format-btn .size { font-size: 11px; color: var(--primary); font-weight: 600; margin-top: 4px; }
+        
+        #final-download-btn { display: none; margin-bottom: 16px; }
         
         .back-link { 
             text-align: center; 
             display: block; 
             font-size: 14px; 
-            color: var(--primary); 
-            text-decoration: none; 
+            color: var(--text-muted); 
+            text-decoration: underline; 
             font-weight: 500;
+            margin-top: 10px;
         }
         
         /* Spinners & Overlays */
@@ -216,10 +225,14 @@ HTML_CONTENT = """
             </div>
             <h2 id="video-title" class="video-title"></h2>
             
-            <div class="formats-label">Available Qualities</div>
+            <div class="formats-label">Select Quality</div>
             <div id="formats-grid" class="formats-grid">
                 <!-- Quality buttons injected via JS -->
             </div>
+            
+            <button id="final-download-btn" class="btn-primary" onclick="triggerDownload()">
+                Download Selected
+            </button>
             
             <a href="#" class="back-link" onclick="resetUI(event)">Paste a different link</a>
         </div>
@@ -240,6 +253,7 @@ HTML_CONTENT = """
 
     <script>
         let currentUrl = '';
+        let selectedFormatId = null;
 
         async function fetchInfo(event) {
             event.preventDefault();
@@ -287,6 +301,8 @@ HTML_CONTENT = """
         function renderResult(data) {
             document.getElementById('input-section').style.display = 'none';
             document.getElementById('result-section').style.display = 'block';
+            document.getElementById('final-download-btn').style.display = 'none';
+            selectedFormatId = null;
             
             document.getElementById('thumbnail').src = data.thumbnail;
             document.getElementById('video-title').innerText = data.title;
@@ -297,18 +313,35 @@ HTML_CONTENT = """
             data.formats.forEach(f => {
                 const btn = document.createElement('div');
                 btn.className = 'format-btn';
-                btn.onclick = () => startDownload(f.format_id);
+                btn.onclick = () => selectFormat(btn, f.format_id);
                 
                 const fpsText = f.fps ? `<span style="margin-left: 2px;">${f.fps}fps</span>` : '';
+                const sizeText = f.size ? `<div class="size">${f.size}</div>` : '';
+                
                 btn.innerHTML = `
                     <div class="res">${f.resolution}</div>
                     <div class="ext">MP4 ${fpsText}</div>
+                    ${sizeText}
                 `;
                 grid.appendChild(btn);
             });
         }
 
-        function startDownload(formatId) {
+        function selectFormat(element, formatId) {
+            // Remove selected class from all buttons
+            document.querySelectorAll('.format-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            // Add selected class to the clicked button
+            element.classList.add('selected');
+            
+            selectedFormatId = formatId;
+            document.getElementById('final-download-btn').style.display = 'block';
+        }
+
+        function triggerDownload() {
+            if (!selectedFormatId) return;
+            
             // Show processing overlay
             document.getElementById('overlay').style.display = 'flex';
             document.getElementById('overlay-title').innerText = 'Processing Video...';
@@ -317,7 +350,7 @@ HTML_CONTENT = """
             
             // Populate hidden form and submit to trigger standard browser file download
             document.getElementById('dl-url').value = currentUrl;
-            document.getElementById('dl-format').value = formatId;
+            document.getElementById('dl-format').value = selectedFormatId;
             document.getElementById('hidden-dl-form').submit();
 
             // Provide a way to interact after a delay (since we don't know exactly when download finishes)
@@ -374,11 +407,25 @@ def get_video_info(url: str = Form(...)):
                 height = f.get('height')
                 if height and height not in seen_heights:
                     seen_heights.add(height)
+                    
+                    # Estimate file size
+                    filesize = f.get('filesize') or f.get('filesize_approx')
+                    size_str = ""
+                    if filesize:
+                        size_mb = filesize / (1024 * 1024)
+                        if size_mb > 1000:
+                            size_str = f"~{size_mb/1024:.1f} GB"
+                        else:
+                            size_str = f"~{size_mb:.1f} MB"
+                    else:
+                        size_str = "Size Unknown"
+                        
                     video_formats.append({
                         "format_id": f.get('format_id'),
                         "resolution": f"{height}p",
                         "fps": f.get('fps'),
-                        "ext": f.get('ext')
+                        "ext": f.get('ext'),
+                        "size": size_str
                     })
                     
             # Fallback if no specific resolutions were extracted cleanly
@@ -387,7 +434,8 @@ def get_video_info(url: str = Form(...)):
                     "format_id": "best",
                     "resolution": "Best Quality",
                     "fps": None,
-                    "ext": "mp4"
+                    "ext": "mp4",
+                    "size": "Auto"
                 })
 
             # Limit to top 6 qualities to keep the mobile UI clean and uncluttered
