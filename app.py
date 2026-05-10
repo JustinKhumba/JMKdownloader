@@ -25,7 +25,7 @@ def set_secure_headers(response):
     # Force explicit CORS headers on every response to ensure the browser never blocks it
     response.headers['Access-Control-Allow-Origin'] = '*'
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept'
     
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-XSS-Protection'] = '1; mode=block'
@@ -37,7 +37,7 @@ def set_secure_headers(response):
         "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; "
         "style-src 'self' 'unsafe-inline'; "
         "img-src 'self' data: https: blob: *; "
-        "frame-ancestors 'self' https://*.blogspot.com http://*.blogspot.com https://jmkdownloader-production.up.railway.app/;"
+        "frame-ancestors 'self' https://*.blogspot.com http://*.blogspot.com https://jmkdownloader.up.railway.app/;"
     )
     response.headers['Content-Security-Policy'] = csp
     return response
@@ -81,7 +81,13 @@ def process():
     if request.method == 'OPTIONS':
         return jsonify({'success': True}), 200
 
-    url = request.form.get('url', '').strip()
+    # Parse basic JSON payload from the frontend
+    if request.is_json:
+        data = request.get_json()
+        url = data.get('url', '').strip()
+    else:
+        # Fallback for standard form submissions
+        url = request.form.get('url', '').strip()
     
     if not validate_instagram_url(url):
         return jsonify({'success': False, 'message': 'Please provide a valid, secure Instagram URL (e.g., https://www.instagram.com/reel/...).'})
