@@ -6,8 +6,9 @@
     <title>InstaGrabber</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        // Tailwind config using default 'media' strategy for dark mode since manual toggle is removed
+        // Tailwind config using class strategy for dynamic dark mode
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {},
             },
@@ -69,8 +70,27 @@
             100% { transform: rotate(0deg); }
         }
     </style>
+    <!-- Script to sync dark mode with localStorage changes -->
+    <script>
+        function applyTheme() {
+            if (localStorage.getItem('darkMode') === 'enabled' || (!('darkMode' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+        
+        // Apply on load to prevent FOUC
+        applyTheme();
+
+        // Listen for changes to localStorage (e.g., from other tabs or extensions)
+        window.addEventListener('storage', (event) => {
+            if (event.key === 'darkMode') {
+                applyTheme();
+            }
+        });
+    </script>
 </head>
-<!-- Removed background colors (bg-gray-50/dark:bg-gray-900) and justify-center. Added justify-start and top padding (pt-8 sm:pt-16) -->
 <body class="flex flex-col items-center justify-start pt-8 sm:pt-16 min-h-screen font-sans antialiased text-gray-900 dark:text-gray-100 p-4 m-0 overflow-y-auto no-scrollbar transition-colors duration-300">
     
     <div class="max-w-md w-full flex-shrink-0 transition-all duration-300">
@@ -175,8 +195,8 @@
         </div>
     </div>
 
-    <!-- Copyright Logo strictly positioned below the card container -->
-    <img src="/checklovetools.png" alt="Check Love Tools Logo" class="mt-8 h-20 object-contain opacity-80 hover:opacity-100 dark:brightness-110 transition-all flex-shrink-0">
+    <!-- Copyright Logo strictly positioned below the card container - Made significantly smaller (h-8 instead of h-20) -->
+    <img src="/checklovetools.png" alt="Check Love Tools Logo" class="mt-8 h-8 object-contain opacity-80 hover:opacity-100 dark:brightness-110 transition-all flex-shrink-0">
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
