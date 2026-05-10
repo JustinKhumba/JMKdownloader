@@ -50,9 +50,7 @@ app.post('/api/process', async (req, res) => {
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
-                // FIX: Removing the spoofed browser User-Agent. 
-                // Cobalt strictly checks browser user-agents for matching CORS Origin headers. 
-                // Using a programmatic agent bypasses this block and acts strictly as a backend client.
+                // Using a programmatic agent bypasses WAF blocks and acts strictly as a backend client.
                 'User-Agent': 'NodeDownloaderProxy/1.0.0'
             },
             // Forward the entire body to support any additional parameters
@@ -73,10 +71,26 @@ app.post('/api/process', async (req, res) => {
             });
         }
 
-        // Forward the HTTP status code from Cobalt
-        if (!response.ok) {
-            console.error(`[COBALT ERROR - HTTP ${response.status}]:`, data);
-            return res.status(response.status).json(data);
+        // Handle and translate specific Cobalt API v10 internal error codes
+        if (!response.ok || data.status === 'error') {
+            let errorMessage = data.text || 'The Cobalt API returned an error.';
+            
+            // If Cobalt returns a structured error object instead of raw text
+            if (data.error && data.error.code) {
+                if (data.error.code === 'error.api.youtube.login') {
+                    errorMessage = 'YouTube blocked the request. Your Cobalt backend requires YouTube cookies (YOUTUBE_COOKIES) to be configured.';
+                } else {
+                    errorMessage = `Cobalt Error: ${data.error.code}`;
+                }
+            }
+
+            console.error(`[COBALT ERROR - HTTP ${response.status}]:`, errorMessage);
+            
+            // Standardize the error format sent back to the frontend
+            return res.status(response.status === 200 ? 400 : response.status).json({
+                status: 'error',
+                text: errorMessage
+            });
         }
 
         res.json(data);
