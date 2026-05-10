@@ -27,6 +27,9 @@ def download():
     # Clean the URL (sometimes tracking parameters cause issues)
     if '?' in url:
         url = url.split('?')[0]
+        
+    # FIX: Normalize /reels/ to /reel/ (yt-dlp heavily prefers the singular format for Instagram)
+    url = url.replace('/reels/', '/reel/')
 
     # Create a temporary directory to store the video before sending
     temp_dir = tempfile.mkdtemp()
@@ -35,16 +38,17 @@ def download():
     ydl_opts = {
         'outtmpl': os.path.join(temp_dir, '%(title)s.%(ext)s'),
         'format': 'best',
-        'quiet': True,
-        'no_warnings': True,
+        'quiet': False, # Changed to False so you can see exact yt-dlp errors in your Railway logs
+        'no_warnings': False,
         'http_headers': {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
     }
 
-    # If a cookies.txt file exists in the directory, use it to bypass Instagram's login wall
-    if os.path.exists('cookies.txt'):
-        ydl_opts['cookiefile'] = 'cookies.txt'
+    # FIX: Use absolute path for cookies to ensure yt-dlp finds it regardless of the execution context
+    cookie_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cookies.txt')
+    if os.path.exists(cookie_path):
+        ydl_opts['cookiefile'] = cookie_path
 
     try:
         # Extract and download the video
@@ -92,16 +96,16 @@ def download():
             
         # Parse common yt-dlp errors to provide user-friendly feedback
         if 'private video' in error_msg or 'requested format not available' in error_msg or 'video unavailable' in error_msg or 'login' in error_msg:
-            flash('This video is private, restricted, or Instagram is blocking access. Try adding a cookies.txt file.', 'error')
+            flash('This video is private, restricted, or Instagram is blocking access despite cookies.', 'error')
         else:
-            flash(f'Unable to download this video: {str(e)[:50]}... Please check the URL and try again.', 'error')
+            flash(f'Unable to download this video. Error info: {str(e)[:100]}...', 'error')
         return redirect(url_for('index'))
         
     except Exception as e:
         # Clean up directory on unexpected error
         if os.path.exists(temp_dir):
             shutil.rmtree(temp_dir)
-        flash('An unexpected processing error occurred. Please try again later.', 'error')
+        flash(f'An unexpected processing error occurred: {str(e)}', 'error')
         return redirect(url_for('index'))
 
 if __name__ == '__main__':
