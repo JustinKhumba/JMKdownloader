@@ -3,197 +3,298 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Instagram Video Downloader</title>
-    <!-- Utilizing Tailwind CSS via CDN -->
+    <title>InstaGrabber</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Hide scrollbar for a cleaner look on mobile but allow scrolling if needed */
         .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
         .no-scrollbar {
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .animate-fade-in-up {
+            animation: fadeInUp 0.4s ease-out forwards;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
-<body class="bg-gray-50 flex items-center justify-center min-h-screen font-sans antialiased text-gray-900 px-4 py-8 sm:px-6 lg:px-8">
+<!-- Removed unnecessary vertical padding and used margin 0 to perfectly center without overflow -->
+<body class="bg-gray-50 flex flex-col items-center justify-center min-h-screen font-sans antialiased text-gray-900 p-4 m-0 overflow-y-auto no-scrollbar">
     
-    <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-xl max-w-md w-full border border-gray-100 transition-all duration-300">
+    <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-xl max-w-md w-full border border-gray-100 flex-shrink-0 transition-all duration-300">
         
         <!-- Header -->
         <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-tr from-pink-100 to-purple-100 mb-4 shadow-sm">
-                <svg class="w-8 h-8 text-pink-600" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <div class="inline-flex items-center justify-center mb-3">
+                <!-- Modern Instagram-style SVG Icon -->
+                <svg class="w-14 h-14" viewBox="0 0 24 24" fill="url(#ig-gradient)">
+                    <defs>
+                        <radialGradient id="ig-gradient" r="150%" cx="30%" cy="107%">
+                            <stop stop-color="#fdf497" offset="0%" />
+                            <stop stop-color="#fdf497" offset="5%" />
+                            <stop stop-color="#fd5949" offset="45%" />
+                            <stop stop-color="#d6249f" offset="60%" />
+                            <stop stop-color="#285AEB" offset="90%" />
+                        </radialGradient>
+                    </defs>
                     <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
                 </svg>
             </div>
-            <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">IG Downloader</h1>
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">InstaGrabber</h1>
             <p class="text-sm text-gray-500 mt-2">Download public Instagram videos instantly</p>
         </div>
         
-        <!-- Error / Success Messaging -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            {% for category, message in messages %}
-              <div class="mb-6 p-4 rounded-xl flex items-start 
-                  {% if category == 'error' %}bg-red-50 text-red-700 border border-red-100
-                  {% else %}bg-green-50 text-green-700 border border-green-100{% endif %}">
-                <svg class="w-5 h-5 mr-3 mt-0.5 flex-shrink-0 {% if category == 'error' %}text-red-500{% else %}text-green-500{% endif %}" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                </svg>
-                <span class="text-sm font-medium">{{ message }}</span>
-              </div>
-            {% endfor %}
-          {% endif %}
-        {% endwith %}
+        <!-- Dynamic Messaging Container -->
+        <div id="messageContainer"></div>
 
-        {% if video_data %}
-            <!-- Step 2: Metadata Display and Download Button -->
-            <div class="space-y-6 animate-fade-in-up">
-                <div class="relative rounded-2xl overflow-hidden bg-gray-100 aspect-video shadow-inner">
-                    {% if video_data.thumbnail %}
-                        <img src="{{ video_data.thumbnail }}" alt="Video Thumbnail" class="w-full h-full object-cover">
-                    {% else %}
-                        <div class="flex items-center justify-center h-full text-gray-400">
-                            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        </div>
-                    {% endif %}
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                    <div class="absolute bottom-0 left-0 p-4">
-                        <p class="text-white text-sm font-semibold line-clamp-2 drop-shadow-md">{{ video_data.title }}</p>
-                    </div>
-                </div>
-
-                <a href="/download/{{ video_data.token }}" id="finalDownloadBtn" class="w-full flex justify-center items-center py-4 px-4 border border-transparent rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 transition-all duration-300 transform active:scale-95 touch-manipulation">
-                    <svg id="dlBtnIcon" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                    </svg>
-                    <span id="dlBtnText">Download MP4</span>
+        <!-- Step 1: URL Input Form -->
+        <form id="processForm" class="space-y-6 block">
+            <div>
+                <label for="url" class="block text-sm font-bold text-gray-700 mb-2">Video URL</label>
+                <div class="relative flex items-center">
+                    <input type="url" name="url" id="url" required 
+                        placeholder="https://www.instagram.com/reel/..." 
+                        class="block w-full pl-4 pr-14 py-4 border border-gray-300 rounded-xl shadow-sm text-gray-900 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-pink-500 focus:border-pink-500 sm:text-base transition-all duration-200 outline-none">
                     
-                    <svg id="dlLoadingSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                </a>
-                
-                <div class="text-center">
-                    <a href="/" class="text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors py-2 px-4 rounded-lg hover:bg-gray-100 touch-manipulation">
-                        Cancel & Try Another
-                    </a>
+                    <button type="button" id="pasteBtn" aria-label="Paste URL" class="absolute right-2 p-2.5 text-gray-400 hover:text-pink-600 focus:text-pink-600 rounded-lg hover:bg-gray-100 focus:outline-none transition-colors touch-manipulation">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                        </svg>
+                    </button>
                 </div>
             </div>
             
-            <script>
-                document.getElementById('finalDownloadBtn').addEventListener('click', function(e) {
-                    const btn = this;
-                    const text = document.getElementById('dlBtnText');
-                    const icon = document.getElementById('dlBtnIcon');
-                    const spinner = document.getElementById('dlLoadingSpinner');
-                    
-                    // Add loading state (don't disable or href won't fire)
-                    btn.classList.add('opacity-80', 'pointer-events-none');
-                    text.textContent = 'Starting Download...';
-                    icon.classList.add('hidden');
-                    spinner.classList.remove('hidden');
-                    
-                    // Reset UI after 5 seconds since standard file downloads don't trigger page load
-                    setTimeout(() => {
-                        btn.classList.remove('opacity-80', 'pointer-events-none');
-                        text.textContent = 'Download MP4';
-                        icon.classList.remove('hidden');
-                        spinner.classList.add('hidden');
-                    }, 5000);
-                });
-            </script>
-            
-        {% else %}
-            <!-- Step 1: URL Input Form -->
-            <form action="/process" method="POST" id="processForm" class="space-y-6">
-                <div>
-                    <label for="url" class="block text-sm font-bold text-gray-700 mb-2">Video URL</label>
-                    <div class="relative flex items-center">
-                        <!-- Input tailored for mobile touch targets -->
-                        <input type="url" name="url" id="url" required 
-                            placeholder="https://www.instagram.com/reel/..." 
-                            class="block w-full pl-4 pr-14 py-4 border border-gray-300 rounded-xl shadow-sm text-gray-900 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-pink-500 focus:border-pink-500 sm:text-base transition-all duration-200 outline-none">
-                        
-                        <!-- Paste Button inside the input -->
-                        <button type="button" id="pasteBtn" aria-label="Paste URL" class="absolute right-2 p-2.5 text-gray-400 hover:text-pink-600 focus:text-pink-600 rounded-lg hover:bg-gray-100 focus:outline-none transition-colors touch-manipulation">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                            </svg>
-                        </button>
-                    </div>
+            <button type="submit" id="submitBtn" class="w-full flex justify-center items-center py-4 px-4 border border-transparent rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 transition-all duration-300 transform active:scale-95 touch-manipulation">
+                <svg id="fetchIcon" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+                <span id="btnText">Fetch Video Info</span>
+                
+                <svg id="loadingSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </button>
+        </form>
+
+        <!-- Step 2: Metadata Display and Download Button -->
+        <div id="step2" class="space-y-6 hidden animate-fade-in-up">
+            <div class="relative rounded-2xl overflow-hidden bg-gray-100 aspect-video shadow-inner">
+                <img id="videoThumb" src="" alt="Video Thumbnail" class="w-full h-full object-cover hidden">
+                <div id="noThumbPlaceholder" class="flex items-center justify-center h-full text-gray-400">
+                    <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </div>
                 
-                <button type="submit" id="submitBtn" class="w-full flex justify-center items-center py-4 px-4 border border-transparent rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 transition-all duration-300 transform active:scale-95 touch-manipulation">
-                    <svg id="fetchIcon" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                    </svg>
-                    <span id="btnText">Fetch Video Info</span>
-                    
-                    <svg id="loadingSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                </button>
-            </form>
+                <!-- Overlay containing cleanly formatted title and filesize -->
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                <div class="absolute bottom-0 left-0 p-4 w-full">
+                    <p id="videoTitle" class="text-white text-sm font-semibold line-clamp-2 drop-shadow-md mb-2"></p>
+                    <span id="videoSize" class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-pink-500/90 text-white backdrop-blur-sm shadow-sm"></span>
+                </div>
+            </div>
+
+            <button type="button" id="finalDownloadBtn" class="w-full flex justify-center items-center py-4 px-4 border border-transparent rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 transition-all duration-300 transform active:scale-95 touch-manipulation">
+                <svg id="dlBtnIcon" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                <span id="dlBtnText">Download MP4</span>
+                
+                <svg id="dlLoadingSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </button>
             
-            <p class="text-xs text-center text-gray-400 mt-6 leading-relaxed">
-                By downloading, you agree to respect copyright laws. Ensure the post is public.
-            </p>
-
-            <script>
-                // Form Processing UX
-                document.getElementById('processForm').addEventListener('submit', function() {
-                    const btn = document.getElementById('submitBtn');
-                    const text = document.getElementById('btnText');
-                    const spinner = document.getElementById('loadingSpinner');
-                    const icon = document.getElementById('fetchIcon');
-                    
-                    btn.disabled = true;
-                    btn.classList.add('opacity-80', 'cursor-not-allowed');
-                    text.textContent = 'Extracting...';
-                    icon.classList.add('hidden');
-                    spinner.classList.remove('hidden');
-                });
-
-                // Reset UI if user uses back/forward browser cache
-                window.addEventListener('pageshow', function(event) {
-                    if (event.persisted) {
-                        const btn = document.getElementById('submitBtn');
-                        btn.disabled = false;
-                        btn.classList.remove('opacity-80', 'cursor-not-allowed');
-                        document.getElementById('btnText').textContent = 'Fetch Video Info';
-                        document.getElementById('fetchIcon').classList.remove('hidden');
-                        document.getElementById('loadingSpinner').classList.add('hidden');
-                    }
-                });
-
-                // Clipboard Paste Functionality
-                document.getElementById('pasteBtn').addEventListener('click', async () => {
-                    try {
-                        // The navigator.clipboard.readText() API automatically prompts the user for permission if not already granted.
-                        const text = await navigator.clipboard.readText();
-                        if (text) {
-                            const inputField = document.getElementById('url');
-                            inputField.value = text;
-                            
-                            // Visual feedback
-                            inputField.classList.add('ring-2', 'ring-pink-300');
-                            setTimeout(() => {
-                                inputField.classList.remove('ring-2', 'ring-pink-300');
-                            }, 500);
-                        }
-                    } catch (err) {
-                        console.error('Failed to read clipboard contents: ', err);
-                        alert('Could not access clipboard. Please ensure permissions are granted or paste manually.');
-                    }
-                });
-            </script>
-        {% endif %}
+            <div class="text-center">
+                <button type="button" id="cancelBtn" class="text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors py-2 px-4 rounded-lg hover:bg-gray-100 touch-manipulation">
+                    Cancel & Try Another
+                </button>
+            </div>
+        </div>
+        
+        <p class="text-xs text-center text-gray-400 mt-6 leading-relaxed">
+            By downloading, you agree to respect copyright laws. Ensure the post is public.
+        </p>
     </div>
 
+    <!-- Copyright Logo strictly positioned below the card container -->
+    <img src="/checklovetools.png" alt="Check Love Tools Logo" class="mt-8 h-10 object-contain opacity-70 hover:opacity-100 transition-opacity flex-shrink-0">
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('processForm');
+            const submitBtn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            const fetchIcon = document.getElementById('fetchIcon');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const messageContainer = document.getElementById('messageContainer');
+            
+            const step1 = document.getElementById('processForm');
+            const step2 = document.getElementById('step2');
+            
+            const videoThumb = document.getElementById('videoThumb');
+            const noThumbPlaceholder = document.getElementById('noThumbPlaceholder');
+            const videoTitle = document.getElementById('videoTitle');
+            const videoSize = document.getElementById('videoSize');
+            
+            const finalDownloadBtn = document.getElementById('finalDownloadBtn');
+            const dlBtnText = document.getElementById('dlBtnText');
+            const dlBtnIcon = document.getElementById('dlBtnIcon');
+            const dlLoadingSpinner = document.getElementById('dlLoadingSpinner');
+            const cancelBtn = document.getElementById('cancelBtn');
+            
+            let currentToken = '';
+
+            function showMessage(msg, isError = true) {
+                messageContainer.innerHTML = `
+                    <div class="mb-6 p-4 rounded-xl flex items-start animate-fade-in-up ${isError ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-green-50 text-green-700 border border-green-100'}">
+                        <svg class="w-5 h-5 mr-3 mt-0.5 flex-shrink-0 ${isError ? 'text-red-500' : 'text-green-500'}" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-sm font-medium">${msg}</span>
+                    </div>
+                `;
+            }
+
+            function clearMessage() {
+                messageContainer.innerHTML = '';
+            }
+
+            // Step 1: Fetch metadata via API Without Page Reload
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                clearMessage();
+                
+                const urlInput = document.getElementById('url').value;
+                if(!urlInput) return;
+
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-80', 'cursor-not-allowed');
+                btnText.textContent = 'Extracting...';
+                fetchIcon.classList.add('hidden');
+                loadingSpinner.classList.remove('hidden');
+
+                const formData = new FormData(form);
+
+                try {
+                    const response = await fetch('/process', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await response.json();
+
+                    if (data.success) {
+                        if (data.data.thumbnail) {
+                            videoThumb.src = data.data.thumbnail;
+                            videoThumb.classList.remove('hidden');
+                            noThumbPlaceholder.classList.add('hidden');
+                        } else {
+                            videoThumb.classList.add('hidden');
+                            noThumbPlaceholder.classList.remove('hidden');
+                        }
+                        
+                        videoTitle.textContent = data.data.title;
+                        videoSize.textContent = data.data.filesize;
+                        currentToken = data.data.token;
+                        
+                        step1.classList.add('hidden');
+                        step2.classList.remove('hidden');
+                    } else {
+                        showMessage(data.message || 'An error occurred fetching the video data.');
+                    }
+                } catch (error) {
+                    showMessage('Network error. Please try again.');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove('opacity-80', 'cursor-not-allowed');
+                    btnText.textContent = 'Fetch Video Info';
+                    fetchIcon.classList.remove('hidden');
+                    loadingSpinner.classList.add('hidden');
+                }
+            });
+
+            // Step 2: Handle Secure File Blob Download Without Page Reload
+            finalDownloadBtn.addEventListener('click', async () => {
+                if (!currentToken) return;
+
+                finalDownloadBtn.classList.add('opacity-80', 'pointer-events-none');
+                dlBtnText.textContent = 'Downloading...';
+                dlBtnIcon.classList.add('hidden');
+                dlLoadingSpinner.classList.remove('hidden');
+                clearMessage();
+
+                try {
+                    const response = await fetch(`/download/${currentToken}`);
+                    
+                    if (!response.ok) {
+                        const errData = await response.json();
+                        showMessage(errData.message || 'Download failed or restricted.', true);
+                        return;
+                    }
+
+                    // Extract the secure sanitized filename mapped by the backend
+                    const contentDisposition = response.headers.get('Content-Disposition');
+                    let filename = 'InstaGrabber_Video.mp4';
+                    if (contentDisposition) {
+                        const filenameMatch = contentDisposition.match(/filename="?([^";]+)"?/);
+                        if (filenameMatch && filenameMatch.length >= 2) {
+                            filename = filenameMatch[1];
+                        }
+                    }
+
+                    // Process stream as Blob to keep user on same page
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = filename;
+                    
+                    document.body.appendChild(a);
+                    a.click();
+                    
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    
+                    showMessage('Download completed successfully!', false);
+                } catch (error) {
+                    showMessage('Network error during file download.', true);
+                } finally {
+                    finalDownloadBtn.classList.remove('opacity-80', 'pointer-events-none');
+                    dlBtnText.textContent = 'Download MP4';
+                    dlBtnIcon.classList.remove('hidden');
+                    dlLoadingSpinner.classList.add('hidden');
+                }
+            });
+
+            cancelBtn.addEventListener('click', () => {
+                step2.classList.add('hidden');
+                step1.classList.remove('hidden');
+                document.getElementById('url').value = '';
+                clearMessage();
+            });
+
+            // Clipboard Paste Functionality
+            document.getElementById('pasteBtn').addEventListener('click', async () => {
+                try {
+                    const text = await navigator.clipboard.readText();
+                    if (text) {
+                        const inputField = document.getElementById('url');
+                        inputField.value = text;
+                        inputField.classList.add('ring-2', 'ring-pink-300');
+                        setTimeout(() => inputField.classList.remove('ring-2', 'ring-pink-300'), 500);
+                    }
+                } catch (err) {
+                    console.error('Failed to read clipboard contents: ', err);
+                    alert('Could not access clipboard. Please paste manually.');
+                }
+            });
+        });
+    </script>
 </body>
 </html>

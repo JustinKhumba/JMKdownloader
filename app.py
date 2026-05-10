@@ -1,14 +1,15 @@
 import os
+import re
 import shutil
 import tempfile
 import urllib.parse
 from io import BytesIO
-from flask import Flask, render_template, request, send_file, flash, redirect, url_for
+from flask import Flask, render_template, request, send_file, jsonify, send_from_directory
 from itsdangerous import URLSafeTimedSerializer, BadSignature
 import yt_dlp
 
 app = Flask(__name__)
-# A secret key is required for Flask's flash messaging and token serialization
+# A secret key is required for token serialization
 app.secret_key = os.environ.get('SECRET_KEY', 'super_secret_key_for_development_environment')
 
 # Serializer for creating secure, temporary download tokens (expires in 1 hour)
@@ -18,11 +19,18 @@ serializer = URLSafeTimedSerializer(app.secret_key)
 def set_secure_headers(response):
     """Implement robust security headers to prevent common web vulnerabilities."""
     response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['X-Frame-Options'] = 'DENY'
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
-    # Restrict where resources can be loaded from; allow images from anywhere (HTTPS) due to dynamic IG CDNs
-    response.headers['Content-Security-Policy'] = "default-src 'self' https://cdn.tailwindcss.com 'unsafe-inline'; img-src 'self' data: https:;"
+    
+    # Strict CSP allowing framing only from approved ancestors and restricting resources
+    csp = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: https: blob:; "
+        "frame-ancestors 'self' http://check-love-tools.blogspot.com/ https://jmkdownloader-production.up.railway.app/;"
+    )
+    response.headers['Content-Security-Policy'] = csp
     return response
 
 def validate_instagram_url(url):
@@ -52,17 +60,21 @@ def get_cookie_path():
 
 @app.route('/', methods=['GET'])
 def index():
-    """Render the main homepage with the download form."""
+    """Render the main SPA homepage."""
     return render_template('index.html')
+
+@app.route('/checklovetools.png', methods=['GET'])
+def serve_logo():
+    """Serve the copyright logo directly from the templates directory."""
+    return send_from_directory('templates', 'checklovetools.png')
 
 @app.route('/process', methods=['POST'])
 def process():
-    """Step 1: Extract video metadata (thumbnail, title) without downloading."""
+    """Step 1: Extract video metadata (thumbnail, title, size) without downloading."""
     url = request.form.get('url', '').strip()
     
     if not validate_instagram_url(url):
-        flash('Please provide a valid, secure Instagram URL (e.g., https://www.instagram.com/reel/...).', 'error')
-        return redirect(url_for('index'))
+        return jsonify({'success': False, 'message': 'Please provide a valid, secure Instagram URL (e.g., https://www.instagram.com/reel/...).'})
 
     # Clean the URL to remove tracking parameters that cause issues
     if '?' in url:
@@ -97,46 +109,52 @@ def process():
             if not thumbnail and info_dict.get('thumbnails'):
                 thumbnail = info_dict['thumbnails'][-1].get('url')
                 
+            # Extract approximate filesize using yt-dlp metadata
+            size_bytes = info_dict.get('filesize') or info_dict.get('filesize_approx') or 0
+            if size_bytes > 0:
+                size_mb = round(size_bytes / (1024 * 1024), 2)
+                filesize_formatted = f"{size_mb} MB"
+            else:
+                filesize_formatted = "Size Unknown"
+                
             # Generate a secure, time-limited token for the actual download
             token = serializer.dumps(url)
             
             video_data = {
                 'title': title,
                 'thumbnail': thumbnail,
+                'filesize': filesize_formatted,
                 'token': token
             }
             
-            return render_template('index.html', video_data=video_data)
+            return jsonify({'success': True, 'data': video_data})
             
     except yt_dlp.utils.DownloadError as e:
         error_msg = str(e).lower()
         if 'private video' in error_msg or 'login' in error_msg:
-            flash('This video is private, restricted, or requires authentication.', 'error')
+            return jsonify({'success': False, 'message': 'This video is private, restricted, or requires authentication.'})
         else:
-            flash('Unable to fetch video details. Ensure the URL is correct and public.', 'error')
-        return redirect(url_for('index'))
+            return jsonify({'success': False, 'message': 'Unable to fetch video details. Ensure the URL is correct and public.'})
         
     except Exception as e:
-        flash('An unexpected error occurred while processing the video.', 'error')
-        return redirect(url_for('index'))
+        return jsonify({'success': False, 'message': 'An unexpected error occurred while processing the video.'})
 
 @app.route('/download/<token>', methods=['GET'])
 def download(token):
-    """Step 2: Handle the actual video download using the validated token."""
+    """Step 2: Handle the actual video download using the validated token. Returns JSON on error for the SPA."""
     try:
         # Decode the token (max age: 1 hour)
         url = serializer.loads(token, max_age=3600)
     except BadSignature:
-        flash('Your download link has expired or is invalid. Please start over.', 'error')
-        return redirect(url_for('index'))
+        return jsonify({'success': False, 'message': 'Your download link has expired or is invalid. Please start over.'}), 400
 
     temp_dir = tempfile.mkdtemp()
     
     ydl_opts = {
-        'outtmpl': os.path.join(temp_dir, '%(title)s.%(ext)s'),
+        'outtmpl': os.path.join(temp_dir, 'video.%(ext)s'),
         'format': 'best',
-        'quiet': False,
-        'no_warnings': False,
+        'quiet': True,
+        'no_warnings': True,
         'http_headers': {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
@@ -149,12 +167,14 @@ def download(token):
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=True)
-            video_title = info_dict.get('title', 'instagram_video')
             
-            # Sanitize filename
-            safe_title = "".join([c for c in video_title if c.isalnum() or c in ' -_']).strip()
+            # Explicitly sanitize and map post title/description to filename
+            raw_title = info_dict.get('title') or info_dict.get('description') or 'InstaGrabber_Video'
+            safe_title = re.sub(r'[^\w\s-]', '', raw_title).strip()
+            safe_title = re.sub(r'[-\s]+', '-', safe_title)
+            
             if not safe_title:
-                safe_title = 'instagram_video'
+                safe_title = 'InstaGrabber_Video'
                 
             ext = info_dict.get('ext', 'mp4')
             
@@ -175,15 +195,14 @@ def download(token):
             return send_file(
                 io_stream,
                 as_attachment=True,
-                download_name=f"{safe_title[:50]}.{ext}",
+                download_name=f"{safe_title[:60]}.{ext}",
                 mimetype=f"video/{ext}"
             )
             
     except Exception as e:
         if os.path.exists(temp_dir):
             shutil.rmtree(temp_dir)
-        flash('Failed to download the video file. It may be restricted.', 'error')
-        return redirect(url_for('index'))
+        return jsonify({'success': False, 'message': 'Failed to download the video file. It may be restricted.'}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
