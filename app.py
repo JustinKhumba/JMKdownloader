@@ -5,10 +5,14 @@ import tempfile
 import urllib.parse
 from io import BytesIO
 from flask import Flask, render_template, request, send_file, jsonify, send_from_directory
+from flask_cors import CORS
 from itsdangerous import URLSafeTimedSerializer, BadSignature
 import yt_dlp
 
 app = Flask(__name__)
+# Enable CORS for all routes and origins so Blogger can communicate with the backend
+CORS(app)
+
 # A secret key is required for token serialization
 app.secret_key = os.environ.get('SECRET_KEY', 'super_secret_key_for_development_environment')
 

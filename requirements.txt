@@ -1,4 +1,5 @@
 Flask==3.0.3
+Flask-Cors
 yt-dlp
 gunicorn==22.0.0
 Werkzeug==3.0.3
