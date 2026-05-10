@@ -6,12 +6,37 @@ import urllib.parse
 from io import BytesIO
 from flask import Flask, render_template, request, send_file, jsonify, send_from_directory
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from itsdangerous import URLSafeTimedSerializer, BadSignature
 import yt_dlp
 
 app = Flask(__name__)
-# Enable CORS for all routes and allow all origins
-CORS(app, resources={r"/*": {"origins": "*"}})
+
+# SECURITY: Limit incoming request payload size to 1MB to prevent DoS attacks
+app.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024
+
+# SECURITY: Strict CORS configuration specifying exactly which domains can access the API
+ALLOWED_ORIGINS = [
+    "https://check-love-tools.blogspot.com",
+    "http://check-love-tools.blogspot.com",
+    "https://www.check-love-tools.blogspot.com",
+    "https://jmkdownloader.up.railway.app",
+    "http://localhost:5000",
+    "http://127.0.0.1:5000"
+]
+
+# Enable CORS restricted to the allowed origins
+CORS(app, resources={r"/*": {"origins": ALLOWED_ORIGINS}})
+
+# SECURITY: Initialize Rate Limiter to prevent spam and abuse
+# Uses the client's IP address to track request rates
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://" # Uses in-memory storage. For multi-server setups, consider Redis.
+)
 
 # A secret key is required for token serialization
 app.secret_key = os.environ.get('SECRET_KEY', 'super_secret_key_for_development_environment')
@@ -19,13 +44,27 @@ app.secret_key = os.environ.get('SECRET_KEY', 'super_secret_key_for_development_
 # Serializer for creating secure, temporary download tokens (expires in 1 hour)
 serializer = URLSafeTimedSerializer(app.secret_key)
 
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    """Custom error handler for rate limit exceeded (HTTP 429)."""
+    return jsonify({
+        'success': False, 
+        'message': f"Too many requests. Please slow down. {e.description}"
+    }), 429
+
+@app.errorhandler(413)
+def payload_too_large(e):
+    """Custom error handler for payload too large (HTTP 413)."""
+    return jsonify({
+        'success': False, 
+        'message': "Request payload is too large. Maximum size is 1MB."
+    }), 413
+
 @app.after_request
 def set_secure_headers(response):
-    """Implement robust security headers and explicit CORS to prevent blocking."""
-    # Force explicit CORS headers on every response to ensure the browser never blocks it
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept'
+    """Implement robust security headers."""
+    # Note: Access-Control headers are now handled exclusively by flask-cors
+    # to avoid header duplication or conflicts.
     
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-XSS-Protection'] = '1; mode=block'
@@ -37,14 +76,14 @@ def set_secure_headers(response):
         "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; "
         "style-src 'self' 'unsafe-inline'; "
         "img-src 'self' data: https: blob: *; "
-        "frame-ancestors 'self' https://*.blogspot.com http://*.blogspot.com https://jmkdownloader.up.railway.app/;"
+        "frame-ancestors 'self' https://*.blogspot.com http://*.blogspot.com https://check-love-tools.blogspot.com https://jmkdownloader.up.railway.app/;"
     )
     response.headers['Content-Security-Policy'] = csp
     return response
 
 def validate_instagram_url(url):
     """Strictly validate the URL to ensure it is a safe Instagram link to prevent SSRF."""
-    if not url:
+    if not url or not isinstance(url, str):
         return False
     try:
         parsed = urllib.parse.urlparse(url)
@@ -65,6 +104,7 @@ def get_cookie_path():
     return cookie_path if os.path.exists(cookie_path) else None
 
 @app.route('/', methods=['GET'])
+# Exempt the homepage from strict rate limits if needed, or leave it subject to defaults
 def index():
     """Render the main SPA homepage."""
     return render_template('index.html')
@@ -75,22 +115,23 @@ def serve_logo():
     return send_from_directory('templates', 'checklovetools.png')
 
 @app.route('/process', methods=['POST', 'OPTIONS'])
+@limiter.limit("10 per minute") # Limit video fetching to 10 requests per minute per IP
 def process():
     """Step 1: Extract video metadata (thumbnail, title, size) without downloading."""
-    # Explicitly handle CORS preflight OPTIONS requests
+    # Handle CORS preflight OPTIONS requests (exempt from rate limit automatically by Limiter default behavior)
     if request.method == 'OPTIONS':
         return jsonify({'success': True}), 200
 
-    # Parse basic JSON payload from the frontend
-    if request.is_json:
-        data = request.get_json()
+    # Parse JSON payload from the frontend safely
+    data = request.get_json(silent=True)
+    if data:
         url = data.get('url', '').strip()
     else:
         # Fallback for standard form submissions
         url = request.form.get('url', '').strip()
     
     if not validate_instagram_url(url):
-        return jsonify({'success': False, 'message': 'Please provide a valid, secure Instagram URL (e.g., https://www.instagram.com/reel/...).'})
+        return jsonify({'success': False, 'message': 'Please provide a valid, secure Instagram URL (e.g., https://www.instagram.com/reel/...).'}), 400
 
     # Clean the URL to remove tracking parameters that cause issues
     if '?' in url:
@@ -148,17 +189,18 @@ def process():
     except yt_dlp.utils.DownloadError as e:
         error_msg = str(e).lower()
         if 'private video' in error_msg or 'login' in error_msg:
-            return jsonify({'success': False, 'message': 'This video is private, restricted, or requires authentication.'})
+            return jsonify({'success': False, 'message': 'This video is private, restricted, or requires authentication.'}), 403
         else:
-            return jsonify({'success': False, 'message': 'Unable to fetch video details. Ensure the URL is correct and public.'})
+            return jsonify({'success': False, 'message': 'Unable to fetch video details. Ensure the URL is correct and public.'}), 400
         
     except Exception as e:
-        return jsonify({'success': False, 'message': 'An unexpected error occurred while processing the video.'})
+        return jsonify({'success': False, 'message': 'An unexpected error occurred while processing the video.'}), 500
 
 @app.route('/download/<token>', methods=['GET', 'OPTIONS'])
+@limiter.limit("5 per minute") # Tighter limit for actual downloads (5 per minute per IP)
 def download(token):
     """Step 2: Handle the actual video download using the validated token."""
-    # Explicitly handle CORS preflight OPTIONS requests
+    # Handle CORS preflight OPTIONS requests
     if request.method == 'OPTIONS':
         return jsonify({'success': True}), 200
 
