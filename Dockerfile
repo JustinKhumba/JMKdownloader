@@ -21,8 +21,8 @@ COPY requirements.txt .
 # Install the Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application source code
-COPY main.py .
+# Copy all the rest of the application source code (including api, services, utils, templates)
+COPY . .
 
 # Expose the port (Railway typically provides the PORT environment variable)
 ENV PORT=8000
