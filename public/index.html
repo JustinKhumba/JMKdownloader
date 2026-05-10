@@ -158,26 +158,6 @@
             const pickerBox = document.getElementById('pickerBox');
             const pickerGrid = document.getElementById('pickerGrid');
 
-            let cobaltApiUrl = 'https://api.cobalt.tools/'; // Default fallback
-
-            // Fetch configuration from the backend
-            async function fetchConfig() {
-                try {
-                    const response = await fetch('/api/config');
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.apiUrl) {
-                            cobaltApiUrl = data.apiUrl;
-                        }
-                    }
-                } catch (error) {
-                    console.error('Error fetching API config:', error);
-                }
-            }
-
-            // Initialization
-            fetchConfig();
-
             // Form Submit Handler
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -188,7 +168,9 @@
                 hideAllFeedback();
 
                 try {
-                    const response = await fetch(cobaltApiUrl, {
+                    // Send request to our own backend proxy at /api/process
+                    // This bypasses browser CORS errors and Origin restrictions from public APIs
+                    const response = await fetch('/api/process', {
                         method: 'POST',
                         headers: {
                             'Accept': 'application/json',
@@ -197,21 +179,24 @@
                         body: JSON.stringify({ url: targetUrl })
                     });
 
-                    // Check for HTTP level errors first
-                    if (!response.ok) {
-                        let msg = `HTTP Error: ${response.status}`;
-                        try {
-                            const errData = await response.json();
-                            if (errData.text) msg = errData.text;
-                        } catch(e) { } // Ignore JSON parse errors for non-JSON error pages
-                        throw new Error(msg);
+                    // Parse JSON payload even if it's an error status
+                    let data;
+                    try {
+                        data = await response.json();
+                    } catch (parseError) {
+                        throw new Error(`Invalid server response (Status: ${response.status})`);
                     }
 
-                    const data = await response.json();
+                    // Check for HTTP level errors (Cobalt v7 often returns 400 with a JSON payload)
+                    if (!response.ok) {
+                        // Correctly extract the v7 error message text, or fallback
+                        const extractedError = data?.error?.text || data?.text || `HTTP Error: ${response.status}`;
+                        throw new Error(extractedError);
+                    }
 
                     // Handle Cobalt API response states
-                    if (data.status === 'error') {
-                        throw new Error(data.text || 'The API returned an unknown error.');
+                    if (data.status === 'error' || data.error) {
+                        throw new Error(data?.error?.text || data.text || 'The API returned an unknown error.');
                     } else if (data.status === 'picker') {
                         renderPickerItems(data.picker);
                     } else if (data.url) {
