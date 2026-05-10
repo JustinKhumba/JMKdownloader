@@ -7,8 +7,7 @@ def get_video_metadata(url: str) -> dict:
     """
     ydl_opts = {
         'quiet': True, 
-        'noplaylist': True,
-        'cookiefile': 'cookies.txt'
+        'noplaylist': True
     }
     
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -73,6 +72,7 @@ def download_video_file(url: str, format_id: str, temp_dir: str) -> str:
     """
     Downloads the specified format, merges audio, and returns the final file path.
     """
+    # Construct the format string based on user selection.
     if format_id == "best":
         target_format = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
     else:
@@ -84,8 +84,7 @@ def download_video_file(url: str, format_id: str, temp_dir: str) -> str:
         'merge_output_format': 'mp4',
         'restrictfilenames': True, 
         'noplaylist': True,
-        'quiet': True,
-        'cookiefile': 'cookies.txt'
+        'quiet': True
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:

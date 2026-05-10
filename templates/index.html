@@ -347,7 +347,8 @@
             setTimeout(() => {
                  document.getElementById('overlay-title').innerText = 'Download Started!';
                  document.getElementById('overlay-spinner').style.display = 'none';
-                 document.getElementById('overlay-status').innerHTML = "If your browser hasn't started the download yet, it should momentarily.<br><br><a href='#' onclick='location.reload()' style='color:var(--primary); font-weight: 600; text-decoration: none;'>&larr; Download another video</a>";
+                 // Using backticks here to avoid escaping issues
+                 document.getElementById('overlay-status').innerHTML = `If your browser hasn't started the download yet, it should momentarily.<br><br><a href="#" onclick="location.reload()" style="color:var(--primary); font-weight: 600; text-decoration: none;">&larr; Download another video</a>`;
             }, 8000); // 8 seconds delay assumption for UI change
         }
 
