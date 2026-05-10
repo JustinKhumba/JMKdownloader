@@ -25,7 +25,7 @@
     <main class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-8 transform transition-all duration-300">
         <div class="text-center mb-8">
             <h1 class="text-3xl font-bold text-indigo-600 mb-2">Video Downloader</h1>
-            <p class="text-sm text-slate-500">Download from YouTube, Twitter, Instagram, TikTok & more</p>
+            <p class="text-sm text-slate-500">Powered by your Cobalt API on Railway</p>
         </div>
 
         <form id="downloadForm" class="space-y-6">
@@ -59,6 +59,9 @@
     </main>
 
     <script>
+        // Your Cobalt API URL from Railway
+        const COBALT_API_URL = 'https://cobalt-api-production-9f84.up.railway.app';
+
         const form = document.getElementById('downloadForm');
         const urlInput = document.getElementById('urlInput');
         const btn = document.getElementById('downloadBtn');
@@ -69,69 +72,70 @@
 
         const updateStatus = (message, isError = false, isProcessing = false) => {
             statusContainer.classList.remove('hidden');
-            let textColor = 'text-green-600';
-            if (isError) textColor = 'text-red-600';
-            if (isProcessing) textColor = 'text-blue-600';
             
-            statusContainer.innerHTML = `<p class="font-medium ${textColor} px-4 py-2 rounded-lg bg-${textColor.split('-')[1]}-50">${message}</p>`;
+            // Explicitly define classes so Tailwind CDN can detect them properly
+            let textColor = 'text-green-600';
+            let bgColor = 'bg-green-50';
+            
+            if (isError) {
+                textColor = 'text-red-600';
+                bgColor = 'bg-red-50';
+            } else if (isProcessing) {
+                textColor = 'text-blue-600';
+                bgColor = 'bg-blue-50';
+            }
+            
+            statusContainer.innerHTML = `<p class="font-medium ${textColor} ${bgColor} px-4 py-2 rounded-lg break-words">${message}</p>`;
         };
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const url = urlInput.value.trim();
-            if (!url) return;
+            const videoUrl = urlInput.value.trim();
+            if (!videoUrl) return;
 
             // Set UI to loading state
             btn.disabled = true;
-            btnText.innerText = 'Processing...';
+            btnText.innerText = 'Connecting to Cobalt...';
             downloadIcon.classList.add('hidden');
             spinner.classList.remove('hidden');
-            updateStatus('Extracting video data. This may take a moment...', false, true);
-
-            const formData = new FormData();
-            formData.append('url', url);
+            updateStatus('Requesting download link from your server...', false, true);
 
             try {
-                const response = await fetch('/api/download', {
+                // Send request to your Cobalt API
+                const response = await fetch(COBALT_API_URL, {
                     method: 'POST',
-                    body: formData
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        url: videoUrl
+                    })
                 });
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Failed to process video.');
+                const data = await response.json();
+
+                // Check for errors returned by Cobalt
+                if (data.status === 'error') {
+                    throw new Error(data.text || 'Cobalt API returned an error processing this URL.');
                 }
 
-                // Extract filename from the Content-Disposition header
-                let filename = 'downloaded_video.mp4';
-                const disposition = response.headers.get('content-disposition');
-                if (disposition && disposition.includes('filename=')) {
-                    const filenameMatch = disposition.match(/filename="?([^"]+)"?/);
-                    if (filenameMatch && filenameMatch.length > 1) {
-                        filename = filenameMatch[1];
-                    }
+                // If successful, Cobalt returns a direct download URL
+                if (data.url) {
+                    updateStatus('Success! Starting your download...', false, false);
+                    
+                    // Trigger the download by navigating to the file URL
+                    window.location.href = data.url;
+                    
+                    // Clear input
+                    urlInput.value = '';
+                } else {
+                    throw new Error('Failed to retrieve a valid download link from the API.');
                 }
-
-                // Convert response to a blob and trigger browser download
-                const blob = await response.blob();
-                const downloadUrl = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = downloadUrl;
-                a.download = filename;
-                
-                document.body.appendChild(a);
-                a.click();
-                
-                // Cleanup
-                window.URL.revokeObjectURL(downloadUrl);
-                document.body.removeChild(a);
-
-                updateStatus('Download complete! Checking your downloads folder.', false, false);
-                urlInput.value = ''; // Clear input on success
                 
             } catch (error) {
-                updateStatus(error.message, true, false);
+                console.error('Fetch error:', error);
+                updateStatus(`Error: ${error.message}. Is your Railway server running?`, true, false);
             } finally {
                 // Restore UI state
                 btn.disabled = false;
