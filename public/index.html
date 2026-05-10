@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en" class="antialiased">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Media Downloader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'media',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #ffffff;
+            animation: spin 1s ease-in-out infinite;
+            width: 20px;
+            height: 20px;
+            display: inline-block;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .hide {
+            display: none !important;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen flex flex-col dark:bg-gray-900 dark:text-gray-100 transition-colors duration-200">
+    
+    <!-- Navbar -->
+    <nav class="w-full bg-white dark:bg-gray-800 shadow-sm py-4 px-6 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <svg class="w-8 h-8 text-brand-600 dark:text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+            </svg>
+            <h1 class="text-xl font-bold tracking-tight">Media Downloader</h1>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow flex items-center justify-center p-4">
+        <div class="max-w-2xl w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-700">
+            
+            <div class="p-8 sm:p-10">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-extrabold text-gray-900 dark:text-white mb-3">Download Anything</h2>
+                    <p class="text-gray-500 dark:text-gray-400">Paste a link from Twitter, YouTube, TikTok, Instagram, Reddit, and more.</p>
+                </div>
+
+                <form id="downloadForm" class="space-y-4">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                            </svg>
+                        </div>
+                        <input 
+                            type="url" 
+                            id="urlInput" 
+                            required
+                            placeholder="https://example.com/video" 
+                            class="block w-full pl-12 pr-4 py-4 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 dark:text-white transition-shadow outline-none"
+                        >
+                    </div>
+
+                    <button 
+                        type="submit" 
+                        id="submitBtn"
+                        class="w-full flex items-center justify-center py-4 px-8 border border-transparent rounded-xl shadow-sm text-base font-medium text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                    >
+                        <span id="btnText">Process Link</span>
+                        <div id="btnLoader" class="spinner hide ml-3"></div>
+                    </button>
+                </form>
+
+                <!-- Feedback Area -->
+                <div id="feedbackArea" class="mt-8 hide">
+                    
+                    <!-- Error State -->
+                    <div id="errorBox" class="hide rounded-xl bg-red-50 dark:bg-red-900/30 p-4 border border-red-200 dark:border-red-800">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-400 dark:text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-red-800 dark:text-red-300" id="errorMsg">An error occurred.</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Success State (Single File) -->
+                    <div id="successBox" class="hide rounded-xl bg-green-50 dark:bg-green-900/30 p-6 border border-green-200 dark:border-green-800 text-center">
+                        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 dark:bg-green-800 mb-4">
+                            <svg class="h-6 w-6 text-green-600 dark:text-green-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-medium text-green-800 dark:text-green-300 mb-2">Media Processed Successfully!</h3>
+                        <p class="text-sm text-green-700 dark:text-green-400 mb-5">Your file is ready to be downloaded.</p>
+                        <a id="downloadLink" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 transition-colors">
+                            Download File
+                            <svg class="ml-2 -mr-1 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                            </svg>
+                        </a>
+                    </div>
+
+                    <!-- Success State (Picker / Multiple Files) -->
+                    <div id="pickerBox" class="hide">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Multiple files found:</h3>
+                        <div id="pickerGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                            <!-- Picker items will be injected here -->
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            
+            <div class="bg-gray-50 dark:bg-gray-900/50 px-8 py-4 border-t border-gray-100 dark:border-gray-700 text-center">
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                    Powered by your self-hosted Cobalt API instance.
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('downloadForm');
+            const urlInput = document.getElementById('urlInput');
+            const submitBtn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            const btnLoader = document.getElementById('btnLoader');
+            
+            const feedbackArea = document.getElementById('feedbackArea');
+            const errorBox = document.getElementById('errorBox');
+            const errorMsg = document.getElementById('errorMsg');
+            const successBox = document.getElementById('successBox');
+            const downloadLink = document.getElementById('downloadLink');
+            const pickerBox = document.getElementById('pickerBox');
+            const pickerGrid = document.getElementById('pickerGrid');
+
+            let cobaltApiUrl = 'https://api.cobalt.tools/'; // Default fallback
+
+            // Fetch configuration from the backend
+            async function fetchConfig() {
+                try {
+                    const response = await fetch('/api/config');
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.apiUrl) {
+                            cobaltApiUrl = data.apiUrl;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error fetching API config:', error);
+                }
+            }
+
+            // Initialization
+            fetchConfig();
+
+            // Form Submit Handler
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const targetUrl = urlInput.value.trim();
+                if (!targetUrl) return;
+
+                setLoadingState(true);
+                hideAllFeedback();
+
+                try {
+                    const response = await fetch(cobaltApiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ url: targetUrl })
+                    });
+
+                    // Check for HTTP level errors first
+                    if (!response.ok) {
+                        let msg = `HTTP Error: ${response.status}`;
+                        try {
+                            const errData = await response.json();
+                            if (errData.text) msg = errData.text;
+                        } catch(e) { } // Ignore JSON parse errors for non-JSON error pages
+                        throw new Error(msg);
+                    }
+
+                    const data = await response.json();
+
+                    // Handle Cobalt API response states
+                    if (data.status === 'error') {
+                        throw new Error(data.text || 'The API returned an unknown error.');
+                    } else if (data.status === 'picker') {
+                        renderPickerItems(data.picker);
+                    } else if (data.url) {
+                        showSuccess(data.url);
+                    } else {
+                        throw new Error('No valid download link was returned from the API.');
+                    }
+
+                } catch (error) {
+                    showError(error.message);
+                } finally {
+                    setLoadingState(false);
+                }
+            });
+
+            // UI Utility Functions
+            function setLoadingState(isLoading) {
+                if (isLoading) {
+                    submitBtn.disabled = true;
+                    urlInput.disabled = true;
+                    btnText.textContent = 'Processing...';
+                    btnLoader.classList.remove('hide');
+                } else {
+                    submitBtn.disabled = false;
+                    urlInput.disabled = false;
+                    btnText.textContent = 'Process Link';
+                    btnLoader.classList.add('hide');
+                }
+            }
+
+            function hideAllFeedback() {
+                feedbackArea.classList.add('hide');
+                errorBox.classList.add('hide');
+                successBox.classList.add('hide');
+                pickerBox.classList.add('hide');
+            }
+
+            function showError(message) {
+                feedbackArea.classList.remove('hide');
+                errorBox.classList.remove('hide');
+                errorMsg.textContent = message;
+            }
+
+            function showSuccess(url) {
+                feedbackArea.classList.remove('hide');
+                successBox.classList.remove('hide');
+                downloadLink.href = url;
+            }
+
+            function renderPickerItems(items) {
+                feedbackArea.classList.remove('hide');
+                pickerBox.classList.remove('hide');
+                pickerGrid.innerHTML = ''; // clear previous
+
+                if (!Array.isArray(items) || items.length === 0) {
+                    pickerGrid.innerHTML = '<p class="text-sm text-gray-500 col-span-2">No items found in carousel.</p>';
+                    return;
+                }
+
+                items.forEach((item, idx) => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'relative group rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 aspect-square flex items-center justify-center';
+                    
+                    if (item.thumb) {
+                        const img = document.createElement('img');
+                        img.src = item.thumb;
+                        img.className = 'absolute inset-0 w-full h-full object-cover z-0 opacity-80 group-hover:opacity-50 transition-opacity';
+                        wrapper.appendChild(img);
+                    }
+
+                    const downloadBtn = document.createElement('a');
+                    downloadBtn.href = item.url;
+                    downloadBtn.target = '_blank';
+                    downloadBtn.rel = 'noopener noreferrer';
+                    downloadBtn.className = 'z-10 bg-brand-600 hover:bg-brand-700 text-white p-3 rounded-full shadow-lg transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-200';
+                    downloadBtn.innerHTML = `
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                    `;
+                    
+                    wrapper.appendChild(downloadBtn);
+                    pickerGrid.appendChild(wrapper);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
