@@ -10,8 +10,8 @@ from itsdangerous import URLSafeTimedSerializer, BadSignature
 import yt_dlp
 
 app = Flask(__name__)
-# Enable CORS for all routes and origins so Blogger can communicate with the backend
-CORS(app)
+# Enable CORS for all routes and allow all origins (*) so any Blogger site can communicate with the backend
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # A secret key is required for token serialization
 app.secret_key = os.environ.get('SECRET_KEY', 'super_secret_key_for_development_environment')
@@ -27,12 +27,13 @@ def set_secure_headers(response):
     response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
     
     # Strict CSP allowing framing only from approved ancestors and restricting resources
+    # Added wildcard blogspot subdomains to allow embedding anywhere on Blogger
     csp = (
-        "default-src 'self'; "
+        "default-src 'self' *; "
         "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; "
         "style-src 'self' 'unsafe-inline'; "
-        "img-src 'self' data: https: blob:; "
-        "frame-ancestors 'self' http://check-love-tools.blogspot.com/ https://jmkdownloader-production.up.railway.app/;"
+        "img-src 'self' data: https: blob: *; "
+        "frame-ancestors 'self' https://*.blogspot.com http://*.blogspot.com https://jmkdownloader-production.up.railway.app/;"
     )
     response.headers['Content-Security-Policy'] = csp
     return response
