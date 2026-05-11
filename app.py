@@ -3,6 +3,7 @@ import re
 import shutil
 import tempfile
 import urllib.parse
+import random
 from io import BytesIO
 from flask import Flask, render_template, request, send_file, jsonify, send_from_directory
 from flask_cors import CORS
@@ -99,9 +100,24 @@ def validate_instagram_url(url):
         return False
 
 def get_cookie_path():
-    """Safely resolve the absolute path to the cookies file."""
-    cookie_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cookies.txt')
-    return cookie_path if os.path.exists(cookie_path) else None
+    """Safely resolve an absolute path to a random cookies file for rotation."""
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # List of all cookie files you want to rotate between
+    cookie_files = ['cookies.txt', 'cookies2.txt']
+    
+    # Verify which files actually exist on the server to prevent errors
+    available_cookies = [
+        os.path.join(base_dir, f) 
+        for f in cookie_files 
+        if os.path.exists(os.path.join(base_dir, f))
+    ]
+    
+    if not available_cookies:
+        return None
+        
+    # Randomly select one of the available cookie files
+    return random.choice(available_cookies)
 
 @app.route('/', methods=['GET'])
 # Exempt the homepage from strict rate limits if needed, or leave it subject to defaults
