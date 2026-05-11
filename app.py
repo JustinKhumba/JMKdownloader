@@ -274,13 +274,11 @@ def process_youtube():
     ydl_opts = {
         'quiet': True,
         'no_warnings': True,
-        'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        },
+        # Removed hardcoded User-Agent headers to allow yt-dlp to automatically match the User-Agent to the player_client
         'extractor_args': {
             'youtube': {
-                # This bypasses the "No video formats found!" error by using the android/web client combination
-                'player_client': ['android', 'web']
+                # Added 'ios' and adjusted combination to better bypass YouTube bot checks
+                'player_client': ['android', 'ios', 'web']
             }
         }
     }
@@ -384,12 +382,10 @@ def download_youtube(token):
         'format': dl_format,
         'quiet': True,
         'no_warnings': True,
-        'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        },
+        # Removed hardcoded User-Agent headers here as well
         'extractor_args': {
             'youtube': {
-                'player_client': ['android', 'web']
+                'player_client': ['android', 'ios', 'web']
             }
         }
     }
