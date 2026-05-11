@@ -276,6 +276,12 @@ def process_youtube():
         'no_warnings': True,
         'http_headers': {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        },
+        'extractor_args': {
+            'youtube': {
+                # This bypasses the "No video formats found!" error by using the android/web client combination
+                'player_client': ['android', 'web']
+            }
         }
     }
 
@@ -355,6 +361,11 @@ def download_youtube(token):
         'no_warnings': True,
         'http_headers': {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        },
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'web']
+            }
         }
     }
 
