@@ -97,7 +97,13 @@ def serve_logo():
 @app.route('/process', methods=['POST'])
 def process():
     """Step 1: Extract video metadata (thumbnail, title, size) without downloading."""
-    url = request.form.get('url', '').strip()
+    
+    # Handle both JSON payloads (from Blogger fetch API) and Form Data (from native HTML form)
+    if request.is_json:
+        data = request.get_json(silent=True) or {}
+        url = data.get('url', '').strip()
+    else:
+        url = request.form.get('url', '').strip()
     
     if not validate_instagram_url(url):
         return jsonify({'success': False, 'message': 'Please provide a valid, secure Instagram URL (e.g., https://www.instagram.com/reel/...).'})
