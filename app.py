@@ -31,23 +31,18 @@ ALLOWED_ORIGINS = [
 CORS(app, resources={r"/*": {"origins": ALLOWED_ORIGINS}})
 
 # SECURITY: Initialize Rate Limiter to prevent spam and abuse
-# Uses the client's IP address to track request rates
 limiter = Limiter(
     get_remote_address,
     app=app,
     default_limits=["200 per day", "50 per hour"],
-    storage_uri="memory://" # Uses in-memory storage. For multi-server setups, consider Redis.
+    storage_uri="memory://" 
 )
 
-# A secret key is required for token serialization
 app.secret_key = os.environ.get('SECRET_KEY', 'super_secret_key_for_development_environment')
-
-# Serializer for creating secure, temporary download tokens (expires in 1 hour)
 serializer = URLSafeTimedSerializer(app.secret_key)
 
 @app.errorhandler(429)
 def ratelimit_handler(e):
-    """Custom error handler for rate limit exceeded (HTTP 429)."""
     return jsonify({
         'success': False, 
         'message': f"Too many requests. Please slow down. {e.description}"
@@ -55,7 +50,6 @@ def ratelimit_handler(e):
 
 @app.errorhandler(413)
 def payload_too_large(e):
-    """Custom error handler for payload too large (HTTP 413)."""
     return jsonify({
         'success': False, 
         'message': "Request payload is too large. Maximum size is 1MB."
@@ -63,15 +57,10 @@ def payload_too_large(e):
 
 @app.after_request
 def set_secure_headers(response):
-    """Implement robust security headers."""
-    # Note: Access-Control headers are now handled exclusively by flask-cors
-    # to avoid header duplication or conflicts.
-    
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
     
-    # Strict CSP allowing framing only from approved ancestors and restricting resources
     csp = (
         "default-src 'self' *; "
         "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; "
@@ -83,7 +72,6 @@ def set_secure_headers(response):
     return response
 
 def validate_instagram_url(url):
-    """Strictly validate the URL to ensure it is a safe Instagram link to prevent SSRF."""
     if not url or not isinstance(url, str):
         return False
     try:
@@ -99,63 +87,69 @@ def validate_instagram_url(url):
     except Exception:
         return False
 
-def get_cookie_path():
-    """Safely resolve an absolute path to a random cookies file for rotation."""
+def validate_youtube_url(url):
+    if not url or not isinstance(url, str):
+        return False
+    try:
+        parsed = urllib.parse.urlparse(url)
+        if parsed.scheme not in ['http', 'https']:
+            return False
+        if parsed.netloc not in ['youtube.com', 'www.youtube.com', 'youtu.be', 'm.youtube.com']:
+            return False
+        return True
+    except Exception:
+        return False
+
+def get_cookie_path(platform):
+    """
+    Dynamically scans the respective platform's cookie directory
+    and returns a random cookie file path for rotation.
+    """
     base_dir = os.path.dirname(os.path.abspath(__file__))
+    cookie_dir = os.path.join(base_dir, f"{platform} cookies")
     
-    # List of all cookie files you want to rotate between
-    cookie_files = ['cookies.txt', 'cookies2.txt']
-    
-    # Verify which files actually exist on the server to prevent errors
-    available_cookies = [
-        os.path.join(base_dir, f) 
-        for f in cookie_files 
-        if os.path.exists(os.path.join(base_dir, f))
-    ]
-    
+    if not os.path.exists(cookie_dir):
+        return None
+        
+    available_cookies = []
+    for f in os.listdir(cookie_dir):
+        full_path = os.path.join(cookie_dir, f)
+        if os.path.isfile(full_path) and f.endswith('.txt'):
+            available_cookies.append(full_path)
+            
     if not available_cookies:
         return None
         
-    # Randomly select one of the available cookie files
     return random.choice(available_cookies)
 
 @app.route('/', methods=['GET'])
-# Exempt the homepage from strict rate limits if needed, or leave it subject to defaults
 def index():
-    """Render the main SPA homepage."""
     return render_template('index.html')
 
 @app.route('/checklovetools.png', methods=['GET'])
 def serve_logo():
-    """Serve the copyright logo directly from the templates directory."""
     return send_from_directory('templates', 'checklovetools.png')
 
-@app.route('/process', methods=['POST', 'OPTIONS'])
-@limiter.limit("10 per minute") # Limit video fetching to 10 requests per minute per IP
-def process():
-    """Step 1: Extract video metadata (thumbnail, title, size) without downloading."""
-    # Handle CORS preflight OPTIONS requests (exempt from rate limit automatically by Limiter default behavior)
+# ==========================================
+# INSTAGRAM ROUTES
+# ==========================================
+
+@app.route('/process/instagram', methods=['POST', 'OPTIONS'])
+@limiter.limit("10 per minute")
+def process_instagram():
     if request.method == 'OPTIONS':
         return jsonify({'success': True}), 200
 
-    # Parse JSON payload from the frontend safely
     data = request.get_json(silent=True)
-    if data:
-        url = data.get('url', '').strip()
-    else:
-        # Fallback for standard form submissions
-        url = request.form.get('url', '').strip()
+    url = data.get('url', '').strip() if data else request.form.get('url', '').strip()
     
     if not validate_instagram_url(url):
-        return jsonify({'success': False, 'message': 'Please provide a valid, secure Instagram URL (e.g., https://www.instagram.com/reel/...).'}), 400
+        return jsonify({'success': False, 'message': 'Please provide a valid Instagram URL.'}), 400
 
-    # Clean the URL to remove tracking parameters that cause issues
     if '?' in url:
         url = url.split('?')[0]
-    # Normalize /reels/ to /reel/ as yt-dlp prefers the singular format
     url = url.replace('/reels/', '/reel/')
 
-    # Configure yt-dlp options just to fetch metadata
     ydl_opts = {
         'quiet': True,
         'no_warnings': True,
@@ -164,12 +158,11 @@ def process():
         }
     }
 
-    cookie_path = get_cookie_path()
+    cookie_path = get_cookie_path('instagram')
     if cookie_path:
         ydl_opts['cookiefile'] = cookie_path
 
     try:
-        # Extract info without downloading the heavy video file yet
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=False)
             
@@ -177,54 +170,38 @@ def process():
             if len(title) > 65:
                 title = title[:62] + '...'
                 
-            # Safely grab the best thumbnail
             thumbnail = info_dict.get('thumbnail')
             if not thumbnail and info_dict.get('thumbnails'):
                 thumbnail = info_dict['thumbnails'][-1].get('url')
                 
-            # Extract approximate filesize using yt-dlp metadata
             size_bytes = info_dict.get('filesize') or info_dict.get('filesize_approx') or 0
-            if size_bytes > 0:
-                size_mb = round(size_bytes / (1024 * 1024), 2)
-                filesize_formatted = f"{size_mb} MB"
-            else:
-                filesize_formatted = "Size Unknown"
-                
-            # Generate a secure, time-limited token for the actual download
+            filesize_formatted = f"{round(size_bytes / (1024 * 1024), 2)} MB" if size_bytes > 0 else "Size Unknown"
+            
             token = serializer.dumps(url)
             
-            video_data = {
+            return jsonify({'success': True, 'data': {
                 'title': title,
                 'thumbnail': thumbnail,
                 'filesize': filesize_formatted,
                 'token': token
-            }
+            }})
             
-            return jsonify({'success': True, 'data': video_data})
-            
-    except yt_dlp.utils.DownloadError as e:
+    except Exception as e:
         error_msg = str(e).lower()
         if 'private video' in error_msg or 'login' in error_msg:
-            return jsonify({'success': False, 'message': 'This video is private, restricted, or requires authentication.'}), 403
-        else:
-            return jsonify({'success': False, 'message': 'Unable to fetch video details. Ensure the URL is correct and public.'}), 400
-        
-    except Exception as e:
-        return jsonify({'success': False, 'message': 'An unexpected error occurred while processing the video.'}), 500
+            return jsonify({'success': False, 'message': 'This video is private or requires authentication.'}), 403
+        return jsonify({'success': False, 'message': 'Unable to fetch video details.'}), 400
 
-@app.route('/download/<token>', methods=['GET', 'OPTIONS'])
-@limiter.limit("5 per minute") # Tighter limit for actual downloads (5 per minute per IP)
-def download(token):
-    """Step 2: Handle the actual video download using the validated token."""
-    # Handle CORS preflight OPTIONS requests
+@app.route('/download/instagram/<token>', methods=['GET', 'OPTIONS'])
+@limiter.limit("5 per minute")
+def download_instagram(token):
     if request.method == 'OPTIONS':
         return jsonify({'success': True}), 200
 
     try:
-        # Decode the token (max age: 1 hour)
         url = serializer.loads(token, max_age=3600)
     except BadSignature:
-        return jsonify({'success': False, 'message': 'Your download link has expired or is invalid. Please start over.'}), 400
+        return jsonify({'success': False, 'message': 'Your download link has expired.'}), 400
 
     temp_dir = tempfile.mkdtemp()
     
@@ -234,11 +211,11 @@ def download(token):
         'quiet': True,
         'no_warnings': True,
         'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
     }
 
-    cookie_path = get_cookie_path()
+    cookie_path = get_cookie_path('instagram')
     if cookie_path:
         ydl_opts['cookiefile'] = cookie_path
 
@@ -246,28 +223,22 @@ def download(token):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=True)
             
-            # Explicitly sanitize and map post title/description to filename
             raw_title = info_dict.get('title') or info_dict.get('description') or 'InstaGrabber_Video'
             safe_title = re.sub(r'[^\w\s-]', '', raw_title).strip()
-            safe_title = re.sub(r'[-\s]+', '-', safe_title)
-            
-            if not safe_title:
-                safe_title = 'InstaGrabber_Video'
+            safe_title = re.sub(r'[-\s]+', '-', safe_title) or 'InstaGrabber_Video'
                 
-            ext = info_dict.get('ext', 'mp4')
-            
             files = os.listdir(temp_dir)
             if not files:
                 raise Exception("Download completed but file could not be found.")
             
             file_path = os.path.join(temp_dir, files[0])
+            ext = file_path.split('.')[-1]
             
             with open(file_path, 'rb') as f:
                 file_data = f.read()
             
             io_stream = BytesIO(file_data)
             io_stream.seek(0)
-            
             shutil.rmtree(temp_dir)
 
             return send_file(
@@ -276,11 +247,151 @@ def download(token):
                 download_name=f"{safe_title[:60]}.{ext}",
                 mimetype=f"video/{ext}"
             )
-            
     except Exception as e:
         if os.path.exists(temp_dir):
             shutil.rmtree(temp_dir)
-        return jsonify({'success': False, 'message': 'Failed to download the video file. It may be restricted.'}), 500
+        return jsonify({'success': False, 'message': 'Failed to download the video file.'}), 500
+
+
+# ==========================================
+# YOUTUBE ROUTES
+# ==========================================
+
+@app.route('/process/youtube', methods=['POST', 'OPTIONS'])
+@limiter.limit("10 per minute")
+def process_youtube():
+    if request.method == 'OPTIONS':
+        return jsonify({'success': True}), 200
+
+    data = request.get_json(silent=True)
+    url = data.get('url', '').strip() if data else request.form.get('url', '').strip()
+    
+    if not validate_youtube_url(url):
+        return jsonify({'success': False, 'message': 'Please provide a valid YouTube URL.'}), 400
+
+    ydl_opts = {
+        'quiet': True,
+        'no_warnings': True,
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+    }
+
+    cookie_path = get_cookie_path('youtube')
+    if cookie_path:
+        ydl_opts['cookiefile'] = cookie_path
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(url, download=False)
+            
+            title = info_dict.get('title', 'YouTube Video')
+            if len(title) > 65:
+                title = title[:62] + '...'
+                
+            thumbnail = info_dict.get('thumbnail')
+            if not thumbnail and info_dict.get('thumbnails'):
+                thumbnail = info_dict['thumbnails'][-1].get('url')
+
+            # Extract available video qualities
+            available_formats = []
+            seen_heights = set()
+            for f in reversed(info_dict.get('formats', [])):
+                h = f.get('height')
+                vcodec = f.get('vcodec')
+                if h and vcodec and vcodec != 'none':
+                    if h not in seen_heights:
+                        seen_heights.add(h)
+                        size = f.get('filesize') or f.get('filesize_approx') or 0
+                        size_str = f"{round(size / (1024 * 1024), 2)} MB" if size > 0 else "Unknown Size"
+                        available_formats.append({
+                            'format_id': f.get('format_id'),
+                            'resolution': f"{h}p",
+                            'height': h,
+                            'size': size_str,
+                            'ext': f.get('ext', 'mp4')
+                        })
+            
+            available_formats.sort(key=lambda x: x['height'], reverse=True)
+            if not available_formats:
+                available_formats = [{'format_id': 'best', 'resolution': 'Best Available', 'height': 0, 'size': 'Unknown Size', 'ext': 'mp4'}]
+            
+            token = serializer.dumps(url)
+            
+            return jsonify({'success': True, 'data': {
+                'title': title,
+                'thumbnail': thumbnail,
+                'formats': available_formats,
+                'token': token
+            }})
+            
+    except Exception as e:
+        return jsonify({'success': False, 'message': 'Unable to fetch YouTube video details.'}), 400
+
+@app.route('/download/youtube/<token>', methods=['GET', 'OPTIONS'])
+@limiter.limit("5 per minute")
+def download_youtube(token):
+    if request.method == 'OPTIONS':
+        return jsonify({'success': True}), 200
+
+    try:
+        url = serializer.loads(token, max_age=3600)
+    except BadSignature:
+        return jsonify({'success': False, 'message': 'Your download link has expired.'}), 400
+
+    format_id = request.args.get('format_id', 'best')
+    temp_dir = tempfile.mkdtemp()
+    
+    # Download requested video format and combine with best audio if needed
+    dl_format = f"{format_id}+bestaudio/best" if format_id != 'best' else 'best'
+
+    ydl_opts = {
+        'outtmpl': os.path.join(temp_dir, 'video.%(ext)s'),
+        'format': dl_format,
+        'quiet': True,
+        'no_warnings': True,
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+    }
+
+    cookie_path = get_cookie_path('youtube')
+    if cookie_path:
+        ydl_opts['cookiefile'] = cookie_path
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(url, download=True)
+            
+            raw_title = info_dict.get('title', 'YouTube_Video')
+            safe_title = re.sub(r'[^\w\s-]', '', raw_title).strip()
+            safe_title = re.sub(r'[-\s]+', '-', safe_title) or 'YouTube_Video'
+                
+            files = os.listdir(temp_dir)
+            if not files:
+                raise Exception("Download completed but file could not be found.")
+            
+            file_path = os.path.join(temp_dir, files[0])
+            ext = file_path.split('.')[-1]
+            
+            with open(file_path, 'rb') as f:
+                file_data = f.read()
+            
+            io_stream = BytesIO(file_data)
+            io_stream.seek(0)
+            shutil.rmtree(temp_dir)
+
+            return send_file(
+                io_stream,
+                as_attachment=True,
+                download_name=f"{safe_title[:60]}.{ext}",
+                mimetype=f"video/{ext}"
+            )
+    except Exception as e:
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+        return jsonify({'success': False, 'message': 'Failed to download the video file.'}), 500
+
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

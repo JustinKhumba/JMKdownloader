@@ -3,15 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
-    <!--Exo click-->
-    <meta name="6a97888e-site-verification" content="35dcfde75454be75eb73af7e5bb40b71">
-
-
-    <title>InstaGrabber</title>
+    <title>Any Media Downloader</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        // Tailwind config using class strategy for dynamic dark mode
         tailwind.config = {
             darkMode: 'class',
             theme: {
@@ -35,36 +29,45 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Dual Spinning Instagram Border Styles */
-        .insta-border-container {
+        .border-container {
             position: relative;
-            border-radius: 1.75rem; /* Slightly larger than the inner card's 1.5rem (3xl) */
-            padding: 4px; /* Border thickness */
+            border-radius: 1.75rem; 
+            padding: 4px; 
             overflow: hidden;
+            transition: all 0.5s ease;
         }
-        .insta-border-container::before,
-        .insta-border-container::after {
+        .border-container::before,
+        .border-container::after {
             content: '';
             position: absolute;
             top: -50%;
             left: -50%;
             width: 200%;
             height: 200%;
-            background: conic-gradient(from 0deg, #fdf497, #fd5949, #d6249f, #285AEB, #fdf497);
             z-index: 0;
             transform-origin: center center;
+            transition: background 0.5s ease;
         }
-        .insta-border-container::before {
+        
+        /* Dynamic Theme gradients */
+        .border-container.theme-ig::before, .border-container.theme-ig::after {
+            background: conic-gradient(from 0deg, #fdf497, #fd5949, #d6249f, #285AEB, #fdf497);
+        }
+        .border-container.theme-yt::before, .border-container.theme-yt::after {
+            background: conic-gradient(from 0deg, #ff0000, #ff4d4d, #990000, #282828, #ff0000);
+        }
+
+        .border-container::before {
             animation: spinCw 4s linear infinite;
         }
-        .insta-border-container::after {
+        .border-container::after {
             animation: spinCcw 6s linear infinite;
-            opacity: 0.5; /* Blend the two spinning layers */
+            opacity: 0.5;
         }
-        .insta-inner-card {
+        .inner-card {
             position: relative;
             z-index: 1;
-            border-radius: 1.5rem; /* rounded-3xl */
+            border-radius: 1.5rem; 
         }
         @keyframes spinCw {
             0% { transform: rotate(0deg); }
@@ -75,7 +78,6 @@
             100% { transform: rotate(0deg); }
         }
     </style>
-    <!-- Script to sync dark mode with localStorage changes -->
     <script>
         function applyTheme() {
             if (localStorage.getItem('darkMode') === 'enabled' || (!('darkMode' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -84,11 +86,7 @@
                 document.documentElement.classList.remove('dark');
             }
         }
-        
-        // Apply on load to prevent FOUC
         applyTheme();
-
-        // Listen for changes to localStorage (e.g., from other tabs or extensions)
         window.addEventListener('storage', (event) => {
             if (event.key === 'darkMode') {
                 applyTheme();
@@ -99,157 +97,204 @@
 <body class="flex flex-col items-center justify-start pt-8 sm:pt-16 min-h-screen font-sans antialiased text-gray-900 dark:text-gray-100 p-4 m-0 overflow-y-auto no-scrollbar transition-colors duration-300">
     
     <div class="max-w-md w-full flex-shrink-0 transition-all duration-300">
-        <!-- Dual-spinning border wrapper -->
-        <div class="insta-border-container shadow-2xl">
-            <!-- Inner Card -->
-            <div class="insta-inner-card bg-white dark:bg-gray-800 p-6 sm:p-8 w-full h-full flex-shrink-0 transition-all duration-300">
+        <div id="dynamicBorder" class="border-container theme-ig shadow-2xl">
+            <div class="inner-card bg-white dark:bg-gray-800 p-6 sm:p-8 w-full h-full flex-shrink-0 transition-all duration-300">
                 
-                <!-- Header -->
-                <div class="text-center mb-8">
-                    <div class="inline-flex items-center justify-center mb-3">
-                        <!-- Modern Instagram-style SVG Icon -->
-                        <svg class="w-14 h-14" viewBox="0 0 24 24" fill="url(#ig-gradient)">
-                            <defs>
-                                <radialGradient id="ig-gradient" r="150%" cx="30%" cy="107%">
-                                    <stop stop-color="#fdf497" offset="0%" />
-                                    <stop stop-color="#fdf497" offset="5%" />
-                                    <stop stop-color="#fd5949" offset="45%" />
-                                    <stop stop-color="#d6249f" offset="60%" />
-                                    <stop stop-color="#285AEB" offset="90%" />
-                                </radialGradient>
-                            </defs>
+                <!-- Tab Interface -->
+                <div class="flex mb-6 border-b border-gray-200 dark:border-gray-700">
+                    <button id="igTab" class="w-1/2 py-3 font-bold text-pink-600 border-b-2 border-pink-600 transition-all flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
                         </svg>
-                    </div>
-                    <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight transition-colors">InstaGrabber</h1>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-2 transition-colors">Download public Instagram videos instantly</p>
+                        Instagram
+                    </button>
+                    <button id="ytTab" class="w-1/2 py-3 font-bold text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 border-b-2 border-transparent transition-all flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                        </svg>
+                        YouTube
+                    </button>
                 </div>
-                
-                <!-- Dynamic Messaging Container -->
+
+                <!-- Global Message Container -->
                 <div id="messageContainer"></div>
 
-                <!-- Step 1: URL Input Form -->
-                <form id="processForm" class="space-y-6 block">
-                    <div>
-                        <label for="url" class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 transition-colors">Video URL</label>
-                        <div class="relative flex items-center">
-                            <!-- Increased pr-24 to accommodate two buttons -->
-                            <input type="url" name="url" id="url" required 
-                                placeholder="https://www.instagram.com/reel/..." 
-                                class="block w-full pl-4 pr-24 py-4 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 focus:bg-white dark:focus:bg-gray-600 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 sm:text-base transition-all duration-200 outline-none">
-                            
-                            <!-- Container for right-side icons -->
-                            <div class="absolute right-2 flex items-center">
-                                <!-- Clear Button (Cross Icon) -->
-                                <button type="button" id="clearBtn" aria-label="Clear URL" class="hidden p-2 text-gray-400 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 focus:text-red-500 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none transition-colors touch-manipulation">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
-                                </button>
-
-                                <!-- Paste Button -->
-                                <button type="button" id="pasteBtn" aria-label="Paste URL" class="p-2 text-gray-400 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 focus:text-pink-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none transition-colors touch-manipulation">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                                    </svg>
-                                </button>
+                <!-- ============================ -->
+                <!-- INSTAGRAM SECTION -->
+                <!-- ============================ -->
+                <div id="igSection" class="block">
+                    <!-- Step 1: Instagram Form -->
+                    <form id="igForm" class="space-y-6 block animate-fade-in-up">
+                        <div>
+                            <label for="igUrl" class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Instagram Video URL</label>
+                            <div class="relative flex items-center">
+                                <input type="url" name="url" id="igUrl" required 
+                                    placeholder="https://www.instagram.com/reel/..." 
+                                    class="block w-full pl-4 pr-24 py-4 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 focus:bg-white dark:focus:bg-gray-600 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 sm:text-base outline-none">
+                                <div class="absolute right-2 flex items-center">
+                                    <button type="button" id="igClearBtn" class="hidden p-2 text-gray-400 hover:text-red-500 rounded-lg">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                    </button>
+                                    <button type="button" id="igPasteBtn" class="p-2 text-gray-400 hover:text-pink-600 rounded-lg">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <button type="submit" id="submitBtn" class="w-full flex justify-center items-center py-4 px-4 border border-transparent rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 transition-all duration-300 transform active:scale-95 touch-manipulation">
-                        <svg id="fetchIcon" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
-                        <span id="btnText">Fetch Video Info</span>
-                        
-                        <svg id="loadingSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                    </button>
-                </form>
-
-                <!-- Step 2: Metadata Display and Download Button -->
-                <div id="step2" class="space-y-6 hidden animate-fade-in-up">
-                    <div class="relative rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-700 aspect-video shadow-inner transition-colors">
-                        <img id="videoThumb" src="" alt="Video Thumbnail" class="w-full h-full object-cover hidden">
-                        <div id="noThumbPlaceholder" class="flex items-center justify-center h-full text-gray-400 dark:text-gray-500">
-                            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        </div>
-                        
-                        <!-- Overlay containing cleanly formatted title and filesize -->
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-                        <div class="absolute bottom-0 left-0 p-4 w-full">
-                            <p id="videoTitle" class="text-white text-sm font-semibold line-clamp-2 drop-shadow-md mb-2"></p>
-                            <span id="videoSize" class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-pink-500/90 text-white backdrop-blur-sm shadow-sm"></span>
-                        </div>
-                    </div>
-
-                    <button type="button" id="finalDownloadBtn" class="w-full flex justify-center items-center py-4 px-4 border border-transparent rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 transition-all duration-300 transform active:scale-95 touch-manipulation">
-                        <svg id="dlBtnIcon" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                        </svg>
-                        <span id="dlBtnText">Download MP4</span>
-                        
-                        <svg id="dlLoadingSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                    </button>
-                    
-                    <div class="text-center">
-                        <button type="button" id="cancelBtn" class="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 touch-manipulation">
-                            Cancel & Try Another
+                        <button type="submit" id="igSubmitBtn" class="w-full flex justify-center items-center py-4 px-4 border border-transparent rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 focus:outline-none transition-all transform active:scale-95">
+                            <svg id="igFetchIcon" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            <span id="igBtnText">Fetch Video Info</span>
+                            <svg id="igLoadingSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                         </button>
+                    </form>
+
+                    <!-- Step 2: Instagram Download -->
+                    <div id="igStep2" class="space-y-6 hidden animate-fade-in-up">
+                        <div class="relative rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-700 aspect-video shadow-inner">
+                            <img id="igVideoThumb" src="" class="w-full h-full object-cover hidden">
+                            <div id="igNoThumbPlaceholder" class="flex items-center justify-center h-full text-gray-400">
+                                <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </div>
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                            <div class="absolute bottom-0 left-0 p-4 w-full">
+                                <p id="igVideoTitle" class="text-white text-sm font-semibold line-clamp-2 drop-shadow-md mb-2"></p>
+                                <span id="igVideoSize" class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-pink-500/90 text-white backdrop-blur-sm"></span>
+                            </div>
+                        </div>
+
+                        <button type="button" id="igDownloadBtn" class="w-full flex justify-center items-center py-4 px-4 border border-transparent rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 transition-all transform active:scale-95">
+                            <svg id="igDlIcon" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            <span id="igDlText">Download MP4</span>
+                            <svg id="igDlSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        </button>
+                        <div class="text-center">
+                            <button type="button" id="igCancelBtn" class="text-sm font-medium text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 py-2 px-4 rounded-lg">Cancel & Try Another</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ============================ -->
+                <!-- YOUTUBE SECTION -->
+                <!-- ============================ -->
+                <div id="ytSection" class="hidden">
+                    <!-- Step 1: YouTube Form -->
+                    <form id="ytForm" class="space-y-6 block animate-fade-in-up">
+                        <div>
+                            <label for="ytUrl" class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">YouTube Video URL</label>
+                            <div class="relative flex items-center">
+                                <input type="url" name="url" id="ytUrl" required 
+                                    placeholder="https://www.youtube.com/watch?v=..." 
+                                    class="block w-full pl-4 pr-24 py-4 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 focus:bg-white dark:focus:bg-gray-600 focus:ring-2 focus:ring-red-500 focus:border-red-500 sm:text-base outline-none">
+                                <div class="absolute right-2 flex items-center">
+                                    <button type="button" id="ytClearBtn" class="hidden p-2 text-gray-400 hover:text-red-500 rounded-lg">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                    </button>
+                                    <button type="button" id="ytPasteBtn" class="p-2 text-gray-400 hover:text-red-600 rounded-lg">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" id="ytSubmitBtn" class="w-full flex justify-center items-center py-4 px-4 border border-transparent rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 focus:outline-none transition-all transform active:scale-95">
+                            <svg id="ytFetchIcon" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            <span id="ytBtnText">Fetch Video Qualities</span>
+                            <svg id="ytLoadingSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        </button>
+                    </form>
+
+                    <!-- Step 2: YouTube Download -->
+                    <div id="ytStep2" class="space-y-4 hidden animate-fade-in-up">
+                        <div class="relative rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-700 aspect-video shadow-inner">
+                            <img id="ytVideoThumb" src="" class="w-full h-full object-cover hidden">
+                            <div id="ytNoThumbPlaceholder" class="flex items-center justify-center h-full text-gray-400">
+                                <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </div>
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                            <div class="absolute bottom-0 left-0 p-4 w-full">
+                                <p id="ytVideoTitle" class="text-white text-sm font-semibold line-clamp-2 drop-shadow-md"></p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="ytFormatSelect" class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Select Resolution</label>
+                            <select id="ytFormatSelect" class="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-red-500 outline-none">
+                                <!-- Options injected by JS -->
+                            </select>
+                        </div>
+
+                        <button type="button" id="ytDownloadBtn" class="w-full flex justify-center items-center py-4 px-4 border border-transparent rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 transition-all transform active:scale-95 mt-2">
+                            <svg id="ytDlIcon" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            <span id="ytDlText">Download MP4</span>
+                            <svg id="ytDlSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        </button>
+                        <div class="text-center">
+                            <button type="button" id="ytCancelBtn" class="text-sm font-medium text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 py-2 px-4 rounded-lg">Cancel & Try Another</button>
+                        </div>
                     </div>
                 </div>
                 
-                <p class="text-xs text-center text-gray-400 dark:text-gray-500 mt-6 leading-relaxed transition-colors">
+                <p class="text-xs text-center text-gray-400 mt-6 leading-relaxed">
                     By downloading, you agree to respect copyright laws. Ensure the post is public.
                 </p>
             </div>
         </div>
     </div>
 
-    <!-- Copyright Logo strictly positioned below the card container - Use Absolute URL for Blogger -->
+    <!-- Copyright Logo -->
     <img src="https://jmkdownloader.up.railway.app/checklovetools.png" alt="Check Love Tools Logo" class="mt-8 h-8 object-contain opacity-80 hover:opacity-100 dark:brightness-110 transition-all flex-shrink-0">
 
     <script>
-        // Define your deployed backend URL here so the frontend (Blogger) can hit the correct API endpoint
         const BACKEND_URL = 'https://jmkdownloader.up.railway.app';
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Downloader Logic
-            const form = document.getElementById('processForm');
-            const urlInput = document.getElementById('url');
-            const submitBtn = document.getElementById('submitBtn');
-            const btnText = document.getElementById('btnText');
-            const fetchIcon = document.getElementById('fetchIcon');
-            const loadingSpinner = document.getElementById('loadingSpinner');
+            // Global Elements
             const messageContainer = document.getElementById('messageContainer');
-            
-            const step1 = document.getElementById('processForm');
-            const step2 = document.getElementById('step2');
-            
-            const videoThumb = document.getElementById('videoThumb');
-            const noThumbPlaceholder = document.getElementById('noThumbPlaceholder');
-            const videoTitle = document.getElementById('videoTitle');
-            const videoSize = document.getElementById('videoSize');
-            
-            const finalDownloadBtn = document.getElementById('finalDownloadBtn');
-            const dlBtnText = document.getElementById('dlBtnText');
-            const dlBtnIcon = document.getElementById('dlBtnIcon');
-            const dlLoadingSpinner = document.getElementById('dlLoadingSpinner');
-            const cancelBtn = document.getElementById('cancelBtn');
-            
-            const clearBtn = document.getElementById('clearBtn');
-            const pasteBtn = document.getElementById('pasteBtn');
+            const dynamicBorder = document.getElementById('dynamicBorder');
 
-            let currentToken = '';
+            // Tabs
+            const igTab = document.getElementById('igTab');
+            const ytTab = document.getElementById('ytTab');
+            const igSection = document.getElementById('igSection');
+            const ytSection = document.getElementById('ytSection');
 
+            let currentIgToken = '';
+            let currentYtToken = '';
+
+            // ----------------------------------------
+            // Tab Switching Logic
+            // ----------------------------------------
+            igTab.addEventListener('click', () => {
+                igTab.classList.add('text-pink-600', 'border-pink-600');
+                igTab.classList.remove('text-gray-400', 'border-transparent');
+                ytTab.classList.add('text-gray-400', 'border-transparent');
+                ytTab.classList.remove('text-red-600', 'border-red-600');
+                
+                igSection.classList.remove('hidden');
+                ytSection.classList.add('hidden');
+                
+                dynamicBorder.classList.remove('theme-yt');
+                dynamicBorder.classList.add('theme-ig');
+                clearMessage();
+            });
+
+            ytTab.addEventListener('click', () => {
+                ytTab.classList.add('text-red-600', 'border-red-600');
+                ytTab.classList.remove('text-gray-400', 'border-transparent');
+                igTab.classList.add('text-gray-400', 'border-transparent');
+                igTab.classList.remove('text-pink-600', 'border-pink-600');
+                
+                ytSection.classList.remove('hidden');
+                igSection.classList.add('hidden');
+                
+                dynamicBorder.classList.remove('theme-ig');
+                dynamicBorder.classList.add('theme-yt');
+                clearMessage();
+            });
+
+            // ----------------------------------------
+            // Helper Functions
+            // ----------------------------------------
             function showMessage(msg, isError = true) {
-                // Incorporating dark mode classes natively in the generated message alerts
                 const errorClasses = 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-100 dark:border-red-800/30';
                 const successClasses = 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-100 dark:border-green-800/30';
                 const iconErrorClass = 'text-red-500 dark:text-red-400';
@@ -269,61 +314,129 @@
                 messageContainer.innerHTML = '';
             }
 
-            // Handle showing/hiding the clear button based on input content
-            urlInput.addEventListener('input', () => {
-                if (urlInput.value.length > 0) {
-                    clearBtn.classList.remove('hidden');
-                } else {
+            function setupInputListeners(inputId, clearBtnId, pasteBtnId) {
+                const input = document.getElementById(inputId);
+                const clearBtn = document.getElementById(clearBtnId);
+                const pasteBtn = document.getElementById(pasteBtnId);
+
+                input.addEventListener('input', () => {
+                    if (input.value.length > 0) clearBtn.classList.remove('hidden');
+                    else clearBtn.classList.add('hidden');
+                });
+
+                clearBtn.addEventListener('click', () => {
+                    input.value = '';
                     clearBtn.classList.add('hidden');
+                    input.focus();
+                });
+
+                pasteBtn.addEventListener('click', async () => {
+                    try {
+                        const text = await navigator.clipboard.readText();
+                        if (text) {
+                            input.value = text;
+                            clearBtn.classList.remove('hidden');
+                        }
+                    } catch (err) {
+                        alert('Could not access clipboard. Please paste manually.');
+                    }
+                });
+            }
+
+            async function handleDownload(url, btnEl, btnTextEl, btnIconEl, spinnerEl, defaultText) {
+                btnEl.classList.add('opacity-80', 'pointer-events-none');
+                btnTextEl.textContent = 'Downloading...';
+                btnIconEl.classList.add('hidden');
+                spinnerEl.classList.remove('hidden');
+                clearMessage();
+
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        const errData = await response.json();
+                        showMessage(errData.message || 'Download failed or restricted.', true);
+                        return;
+                    }
+
+                    const contentDisposition = response.headers.get('Content-Disposition');
+                    let filename = 'Video.mp4';
+                    if (contentDisposition) {
+                        const filenameMatch = contentDisposition.match(/filename="?([^";]+)"?/);
+                        if (filenameMatch && filenameMatch.length >= 2) {
+                            filename = filenameMatch[1];
+                        }
+                    }
+
+                    const blob = await response.blob();
+                    const objectUrl = window.URL.createObjectURL(blob);
+                    
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = objectUrl;
+                    a.download = filename;
+                    
+                    document.body.appendChild(a);
+                    a.click();
+                    
+                    window.URL.revokeObjectURL(objectUrl);
+                    document.body.removeChild(a);
+                    
+                    showMessage('Download completed successfully!', false);
+                } catch (error) {
+                    showMessage('Network error during file download.', true);
+                } finally {
+                    btnEl.classList.remove('opacity-80', 'pointer-events-none');
+                    btnTextEl.textContent = defaultText;
+                    btnIconEl.classList.remove('hidden');
+                    spinnerEl.classList.add('hidden');
                 }
-            });
+            }
 
-            // Clear input logic
-            clearBtn.addEventListener('click', () => {
-                urlInput.value = '';
-                clearBtn.classList.add('hidden');
-                urlInput.focus();
-            });
+            // ----------------------------------------
+            // Instagram Logic
+            // ----------------------------------------
+            setupInputListeners('igUrl', 'igClearBtn', 'igPasteBtn');
 
-            // Step 1: Fetch metadata via API Without Page Reload
-            form.addEventListener('submit', async (e) => {
+            document.getElementById('igForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 clearMessage();
                 
+                const urlInput = document.getElementById('igUrl');
                 if(!urlInput.value) return;
 
+                const submitBtn = document.getElementById('igSubmitBtn');
                 submitBtn.disabled = true;
                 submitBtn.classList.add('opacity-80', 'cursor-not-allowed');
-                btnText.textContent = 'Extracting...';
-                fetchIcon.classList.add('hidden');
-                loadingSpinner.classList.remove('hidden');
-
-                const formData = new FormData(form);
+                document.getElementById('igBtnText').textContent = 'Extracting...';
+                document.getElementById('igFetchIcon').classList.add('hidden');
+                document.getElementById('igLoadingSpinner').classList.remove('hidden');
 
                 try {
-                    // Updated to use the absolute BACKEND_URL
-                    const response = await fetch(`${BACKEND_URL}/process`, {
+                    const response = await fetch(`${BACKEND_URL}/process/instagram`, {
                         method: 'POST',
-                        body: formData
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url: urlInput.value })
                     });
                     const data = await response.json();
 
                     if (data.success) {
+                        const thumb = document.getElementById('igVideoThumb');
+                        const placeholder = document.getElementById('igNoThumbPlaceholder');
                         if (data.data.thumbnail) {
-                            videoThumb.src = data.data.thumbnail;
-                            videoThumb.classList.remove('hidden');
-                            noThumbPlaceholder.classList.add('hidden');
+                            thumb.src = data.data.thumbnail;
+                            thumb.classList.remove('hidden');
+                            placeholder.classList.add('hidden');
                         } else {
-                            videoThumb.classList.add('hidden');
-                            noThumbPlaceholder.classList.remove('hidden');
+                            thumb.classList.add('hidden');
+                            placeholder.classList.remove('hidden');
                         }
                         
-                        videoTitle.textContent = data.data.title;
-                        videoSize.textContent = data.data.filesize;
-                        currentToken = data.data.token;
+                        document.getElementById('igVideoTitle').textContent = data.data.title;
+                        document.getElementById('igVideoSize').textContent = data.data.filesize;
+                        currentIgToken = data.data.token;
                         
-                        step1.classList.add('hidden');
-                        step2.classList.remove('hidden');
+                        document.getElementById('igForm').classList.add('hidden');
+                        document.getElementById('igStep2').classList.remove('hidden');
                     } else {
                         showMessage(data.message || 'An error occurred fetching the video data.');
                     }
@@ -332,90 +445,117 @@
                 } finally {
                     submitBtn.disabled = false;
                     submitBtn.classList.remove('opacity-80', 'cursor-not-allowed');
-                    btnText.textContent = 'Fetch Video Info';
-                    fetchIcon.classList.remove('hidden');
-                    loadingSpinner.classList.add('hidden');
+                    document.getElementById('igBtnText').textContent = 'Fetch Video Info';
+                    document.getElementById('igFetchIcon').classList.remove('hidden');
+                    document.getElementById('igLoadingSpinner').classList.add('hidden');
                 }
             });
 
-            // Step 2: Handle Secure File Blob Download Without Page Reload
-            finalDownloadBtn.addEventListener('click', async () => {
-                if (!currentToken) return;
+            document.getElementById('igDownloadBtn').addEventListener('click', () => {
+                if (!currentIgToken) return;
+                handleDownload(`${BACKEND_URL}/download/instagram/${currentIgToken}`, 
+                    document.getElementById('igDownloadBtn'), 
+                    document.getElementById('igDlText'), 
+                    document.getElementById('igDlIcon'), 
+                    document.getElementById('igDlSpinner'), 
+                    'Download MP4'
+                );
+            });
 
-                finalDownloadBtn.classList.add('opacity-80', 'pointer-events-none');
-                dlBtnText.textContent = 'Downloading...';
-                dlBtnIcon.classList.add('hidden');
-                dlLoadingSpinner.classList.remove('hidden');
+            document.getElementById('igCancelBtn').addEventListener('click', () => {
+                document.getElementById('igStep2').classList.add('hidden');
+                document.getElementById('igForm').classList.remove('hidden');
+                document.getElementById('igUrl').value = '';
+                document.getElementById('igClearBtn').classList.add('hidden');
                 clearMessage();
+            });
+
+            // ----------------------------------------
+            // YouTube Logic
+            // ----------------------------------------
+            setupInputListeners('ytUrl', 'ytClearBtn', 'ytPasteBtn');
+
+            document.getElementById('ytForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                clearMessage();
+                
+                const urlInput = document.getElementById('ytUrl');
+                if(!urlInput.value) return;
+
+                const submitBtn = document.getElementById('ytSubmitBtn');
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-80', 'cursor-not-allowed');
+                document.getElementById('ytBtnText').textContent = 'Extracting...';
+                document.getElementById('ytFetchIcon').classList.add('hidden');
+                document.getElementById('ytLoadingSpinner').classList.remove('hidden');
 
                 try {
-                    // Updated to use the absolute BACKEND_URL
-                    const response = await fetch(`${BACKEND_URL}/download/${currentToken}`);
-                    
-                    if (!response.ok) {
-                        const errData = await response.json();
-                        showMessage(errData.message || 'Download failed or restricted.', true);
-                        return;
-                    }
+                    const response = await fetch(`${BACKEND_URL}/process/youtube`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url: urlInput.value })
+                    });
+                    const data = await response.json();
 
-                    // Extract the secure sanitized filename mapped by the backend
-                    const contentDisposition = response.headers.get('Content-Disposition');
-                    let filename = 'InstaGrabber_Video.mp4';
-                    if (contentDisposition) {
-                        const filenameMatch = contentDisposition.match(/filename="?([^";]+)"?/);
-                        if (filenameMatch && filenameMatch.length >= 2) {
-                            filename = filenameMatch[1];
+                    if (data.success) {
+                        const thumb = document.getElementById('ytVideoThumb');
+                        const placeholder = document.getElementById('ytNoThumbPlaceholder');
+                        if (data.data.thumbnail) {
+                            thumb.src = data.data.thumbnail;
+                            thumb.classList.remove('hidden');
+                            placeholder.classList.add('hidden');
+                        } else {
+                            thumb.classList.add('hidden');
+                            placeholder.classList.remove('hidden');
                         }
-                    }
+                        
+                        document.getElementById('ytVideoTitle').textContent = data.data.title;
+                        currentYtToken = data.data.token;
 
-                    // Process stream as Blob to keep user on same page
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = url;
-                    a.download = filename;
-                    
-                    document.body.appendChild(a);
-                    a.click();
-                    
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                    
-                    showMessage('Download completed successfully!', false);
+                        // Populate Qualities Select Dropdown
+                        const selectEl = document.getElementById('ytFormatSelect');
+                        selectEl.innerHTML = ''; // Clear existing
+                        data.data.formats.forEach(f => {
+                            const option = document.createElement('option');
+                            option.value = f.format_id;
+                            option.textContent = `${f.resolution} - ${f.size} (${f.ext.toUpperCase()})`;
+                            selectEl.appendChild(option);
+                        });
+                        
+                        document.getElementById('ytForm').classList.add('hidden');
+                        document.getElementById('ytStep2').classList.remove('hidden');
+                    } else {
+                        showMessage(data.message || 'An error occurred fetching the YouTube data.');
+                    }
                 } catch (error) {
-                    showMessage('Network error during file download.', true);
+                    showMessage('Network error. Please try again.');
                 } finally {
-                    finalDownloadBtn.classList.remove('opacity-80', 'pointer-events-none');
-                    dlBtnText.textContent = 'Download MP4';
-                    dlBtnIcon.classList.remove('hidden');
-                    dlLoadingSpinner.classList.add('hidden');
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove('opacity-80', 'cursor-not-allowed');
+                    document.getElementById('ytBtnText').textContent = 'Fetch Video Qualities';
+                    document.getElementById('ytFetchIcon').classList.remove('hidden');
+                    document.getElementById('ytLoadingSpinner').classList.add('hidden');
                 }
             });
 
-            cancelBtn.addEventListener('click', () => {
-                step2.classList.add('hidden');
-                step1.classList.remove('hidden');
-                urlInput.value = '';
-                clearBtn.classList.add('hidden'); // Ensure clear button resets as well
+            document.getElementById('ytDownloadBtn').addEventListener('click', () => {
+                if (!currentYtToken) return;
+                const formatId = document.getElementById('ytFormatSelect').value;
+                handleDownload(`${BACKEND_URL}/download/youtube/${currentYtToken}?format_id=${formatId}`, 
+                    document.getElementById('ytDownloadBtn'), 
+                    document.getElementById('ytDlText'), 
+                    document.getElementById('ytDlIcon'), 
+                    document.getElementById('ytDlSpinner'), 
+                    'Download MP4'
+                );
+            });
+
+            document.getElementById('ytCancelBtn').addEventListener('click', () => {
+                document.getElementById('ytStep2').classList.add('hidden');
+                document.getElementById('ytForm').classList.remove('hidden');
+                document.getElementById('ytUrl').value = '';
+                document.getElementById('ytClearBtn').classList.add('hidden');
                 clearMessage();
-            });
-
-            // Clipboard Paste Functionality
-            pasteBtn.addEventListener('click', async () => {
-                try {
-                    const text = await navigator.clipboard.readText();
-                    if (text) {
-                        urlInput.value = text;
-                        urlInput.classList.add('ring-2', 'ring-pink-300');
-                        setTimeout(() => urlInput.classList.remove('ring-2', 'ring-pink-300'), 500);
-                        clearBtn.classList.remove('hidden'); // Show clear button after pasting
-                    }
-                } catch (err) {
-                    console.error('Failed to read clipboard contents: ', err);
-                    alert('Could not access clipboard. Please paste manually.');
-                }
             });
         });
     </script>
