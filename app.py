@@ -301,26 +301,51 @@ def process_youtube():
             if not thumbnail and info_dict.get('thumbnails'):
                 thumbnail = info_dict['thumbnails'][-1].get('url')
 
-            # Extract available video qualities
+            # Extract ALL available video qualities
             available_formats = []
-            seen_heights = set()
-            for f in reversed(info_dict.get('formats', [])):
+            seen_formats = set()
+            
+            for f in info_dict.get('formats', []):
                 h = f.get('height')
                 vcodec = f.get('vcodec')
+                
+                # Filter for video streams
                 if h and vcodec and vcodec != 'none':
-                    if h not in seen_heights:
-                        seen_heights.add(h)
+                    ext = f.get('ext', 'mp4')
+                    fps = f.get('fps')
+                    
+                    # Create readable resolution label (e.g. "1080p 60fps (Premium)")
+                    fps_str = f"{int(fps)}fps" if fps and isinstance(fps, (int, float)) and fps >= 30 else ""
+                    res_label = f"{h}p"
+                    if fps_str:
+                        res_label += f" {fps_str}"
+                    
+                    format_note = f.get('format_note', '')
+                    if format_note and isinstance(format_note, str):
+                        if 'Premium' in format_note:
+                            res_label += " (Premium)"
+                        elif 'HDR' in format_note:
+                            res_label += " (HDR)"
+
+                    # Use a unique signature so we get MP4 and WEBM equivalents, and different framerates
+                    fmt_key = f"{h}-{fps_str}-{ext}-{format_note}"
+                    
+                    if fmt_key not in seen_formats:
+                        seen_formats.add(fmt_key)
                         size = f.get('filesize') or f.get('filesize_approx') or 0
-                        size_str = f"{round(size / (1024 * 1024), 2)} MB" if size > 0 else "Unknown Size"
+                        size_str = f"{round(size / (1024 * 1024), 2)} MB" if size > 0 else "Unknown"
+                        
                         available_formats.append({
                             'format_id': f.get('format_id'),
-                            'resolution': f"{h}p",
+                            'resolution': res_label,
                             'height': h,
                             'size': size_str,
-                            'ext': f.get('ext', 'mp4')
+                            'ext': ext,
+                            'fps': fps or 0
                         })
             
-            available_formats.sort(key=lambda x: x['height'], reverse=True)
+            # Sort qualities cleanly: highest resolution first, then framerate
+            available_formats.sort(key=lambda x: (x['height'], x['fps']), reverse=True)
             if not available_formats:
                 available_formats = [{'format_id': 'best', 'resolution': 'Best Available', 'height': 0, 'size': 'Unknown Size', 'ext': 'mp4'}]
             

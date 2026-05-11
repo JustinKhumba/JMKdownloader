@@ -216,15 +216,20 @@
                         </div>
 
                         <div>
-                            <label for="ytFormatSelect" class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Select Resolution</label>
-                            <select id="ytFormatSelect" class="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-red-500 outline-none">
+                            <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">Select Quality</label>
+                            
+                            <!-- Responsive Button Grid instead of Select Input -->
+                            <div id="ytFormatButtons" class="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-60 overflow-y-auto no-scrollbar pb-2">
                                 <!-- Options injected by JS -->
-                            </select>
+                            </div>
+                            
+                            <!-- Hidden input to store selected ID -->
+                            <input type="hidden" id="ytSelectedFormat" value="best">
                         </div>
 
                         <button type="button" id="ytDownloadBtn" class="w-full flex justify-center items-center py-4 px-4 border border-transparent rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 transition-all transform active:scale-95 mt-2">
                             <svg id="ytDlIcon" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                            <span id="ytDlText">Download MP4</span>
+                            <span id="ytDlText">Download Video</span>
                             <svg id="ytDlSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                         </button>
                         <div class="text-center">
@@ -512,14 +517,44 @@
                         document.getElementById('ytVideoTitle').textContent = data.data.title;
                         currentYtToken = data.data.token;
 
-                        // Populate Qualities Select Dropdown
-                        const selectEl = document.getElementById('ytFormatSelect');
-                        selectEl.innerHTML = ''; // Clear existing
-                        data.data.formats.forEach(f => {
-                            const option = document.createElement('option');
-                            option.value = f.format_id;
-                            option.textContent = `${f.resolution} - ${f.size} (${f.ext.toUpperCase()})`;
-                            selectEl.appendChild(option);
+                        // Populate Qualities Button Grid
+                        const btnContainer = document.getElementById('ytFormatButtons');
+                        const hiddenInput = document.getElementById('ytSelectedFormat');
+                        btnContainer.innerHTML = ''; 
+
+                        data.data.formats.forEach((f, index) => {
+                            const btn = document.createElement('button');
+                            btn.type = 'button';
+                            
+                            // Determine initial selected state
+                            const isSelected = index === 0;
+                            if (isSelected) hiddenInput.value = f.format_id;
+                            
+                            // Style bases
+                            const defaultClass = "yt-format-btn flex flex-col items-center justify-center p-3 border-2 rounded-xl transition-all cursor-pointer w-full ";
+                            const selectedStyle = "border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400";
+                            const unselectedStyle = "border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-red-300 dark:hover:border-red-500";
+                            
+                            btn.className = defaultClass + (isSelected ? selectedStyle : unselectedStyle);
+                            
+                            btn.innerHTML = `
+                                <span class="font-bold text-base sm:text-lg whitespace-nowrap">${f.resolution}</span>
+                                <span class="text-[10px] sm:text-xs opacity-75 mt-1">${f.ext.toUpperCase()} • ${f.size}</span>
+                            `;
+                            
+                            btn.addEventListener('click', () => {
+                                hiddenInput.value = f.format_id;
+                                
+                                // Reset all buttons
+                                document.querySelectorAll('.yt-format-btn').forEach(b => {
+                                    b.className = defaultClass + unselectedStyle;
+                                });
+                                
+                                // Highlight selected
+                                btn.className = defaultClass + selectedStyle;
+                            });
+                            
+                            btnContainer.appendChild(btn);
                         });
                         
                         document.getElementById('ytForm').classList.add('hidden');
@@ -540,13 +575,13 @@
 
             document.getElementById('ytDownloadBtn').addEventListener('click', () => {
                 if (!currentYtToken) return;
-                const formatId = document.getElementById('ytFormatSelect').value;
+                const formatId = document.getElementById('ytSelectedFormat').value;
                 handleDownload(`${BACKEND_URL}/download/youtube/${currentYtToken}?format_id=${formatId}`, 
                     document.getElementById('ytDownloadBtn'), 
                     document.getElementById('ytDlText'), 
                     document.getElementById('ytDlIcon'), 
                     document.getElementById('ytDlSpinner'), 
-                    'Download MP4'
+                    'Download Video'
                 );
             });
 
