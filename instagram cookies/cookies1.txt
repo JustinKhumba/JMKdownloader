@@ -3,10 +3,12 @@
 # This is a generated file! Do not edit.
 
 .instagram.com	TRUE	/	TRUE	1809953030	ig_did	6E6EE9E8-385E-4D99-A0CB-44D40005314C
-.instagram.com	TRUE	/	TRUE	1812977123	csrftoken	z2FoLmcWU6ZgpjKo1vMJ_J
 .instagram.com	TRUE	/	TRUE	1812977031	datr	hn0AarxT8VrtcfJavo3odvLk
 .instagram.com	TRUE	/	TRUE	1812977031	mid	agB9hgAEAAHF3LhCV4UaB4ert0sm
-.instagram.com	TRUE	/	TRUE	1779021846	wd	1600x739
-.instagram.com	TRUE	/	TRUE	1786193123	ds_user_id	73599772287
-.instagram.com	TRUE	/	TRUE	1809953039	sessionid	73599772287%3AzHQ2yjq81bZWW5%3A17%3AAYg5KYMafrfxGm6yYt9rSmmXYa6-FUb6UX5PVltzpw
-.instagram.com	TRUE	/	TRUE	0	rur	"VLL\05473599772287\0541809953122:01fe4d92b2cc3dd63abd2e0d620f84c3f20d6c0edd29b452433c526af7005962dc7060bd"
+.instagram.com	TRUE	/	TRUE	1813037867	csrftoken	OycsDV1yF0TeyfyPlvV9qT4Dpv4B74gE
+.instagram.com	TRUE	/	TRUE	1786253867	ds_user_id	21959811143
+.instagram.com	TRUE	/	TRUE	1810003703	sessionid	21959811143%3AowQXMarC9lZ7vP%3A5%3AAYiMbB_nVwqew10RLIkfTZzCJatXE5oPLYAdaTYSOg
+.instagram.com	TRUE	/	TRUE	1813027918	ps_l	1
+.instagram.com	TRUE	/	TRUE	1813027918	ps_n	1
+.instagram.com	TRUE	/	TRUE	1779082659	wd	1600x739
+.instagram.com	TRUE	/	TRUE	0	rur	"SNB\05421959811143\0541810013866:01fe97c257fcad7ae8b4c52e9f8492744de2d46976678a19e4fdb9244a8e2aef967fca94"
