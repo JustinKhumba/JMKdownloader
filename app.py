@@ -188,9 +188,10 @@ def process_instagram():
             
     except Exception as e:
         error_msg = str(e).lower()
+        print(f"[INSTAGRAM FETCH ERROR]: {error_msg}")
         if 'private video' in error_msg or 'login' in error_msg:
             return jsonify({'success': False, 'message': 'This video is private or requires authentication.'}), 403
-        return jsonify({'success': False, 'message': 'Unable to fetch video details.'}), 400
+        return jsonify({'success': False, 'message': f'Unable to fetch video details: {str(e)}'}), 400
 
 @app.route('/download/instagram/<token>', methods=['GET', 'OPTIONS'])
 @limiter.limit("5 per minute")
@@ -248,9 +249,10 @@ def download_instagram(token):
                 mimetype=f"video/{ext}"
             )
     except Exception as e:
+        print(f"[INSTAGRAM DOWNLOAD ERROR]: {str(e)}")
         if os.path.exists(temp_dir):
             shutil.rmtree(temp_dir)
-        return jsonify({'success': False, 'message': 'Failed to download the video file.'}), 500
+        return jsonify({'success': False, 'message': f'Failed to download the video file: {str(e)}'}), 500
 
 
 # ==========================================
@@ -326,7 +328,8 @@ def process_youtube():
             }})
             
     except Exception as e:
-        return jsonify({'success': False, 'message': 'Unable to fetch YouTube video details.'}), 400
+        print(f"[YOUTUBE FETCH ERROR]: {str(e)}")
+        return jsonify({'success': False, 'message': f'Unable to fetch YouTube video details: {str(e)}'}), 400
 
 @app.route('/download/youtube/<token>', methods=['GET', 'OPTIONS'])
 @limiter.limit("5 per minute")
@@ -388,9 +391,10 @@ def download_youtube(token):
                 mimetype=f"video/{ext}"
             )
     except Exception as e:
+        print(f"[YOUTUBE DOWNLOAD ERROR]: {str(e)}")
         if os.path.exists(temp_dir):
             shutil.rmtree(temp_dir)
-        return jsonify({'success': False, 'message': 'Failed to download the video file.'}), 500
+        return jsonify({'success': False, 'message': f'Failed to download the video file: {str(e)}'}), 500
 
 
 if __name__ == '__main__':
