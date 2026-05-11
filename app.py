@@ -40,24 +40,23 @@ def set_secure_headers(response):
     return response
 
 def validate_instagram_url(url):
-    """Strictly validate the URL to ensure it is a safe Instagram link to prevent SSRF."""
-    if not url:
+    """
+    Strictly validate the URL using Regex to ensure it is a safe Instagram link.
+    Never trust user input: enforces exact domain, path structure, and allowed alphanumeric ID characters.
+    """
+    if not url or not isinstance(url, str):
         return False
-    try:
-        parsed = urllib.parse.urlparse(url)
-        # Scheme must be explicitly HTTPS
-        if parsed.scheme != 'https':
-            return False
-        # Domain must exactly match Instagram
-        if parsed.netloc not in ['instagram.com', 'www.instagram.com']:
-            return False
-        # Path must start with allowed Instagram video routes
-        valid_path_starts = ('/p/', '/reel/', '/reels/', '/tv/')
-        if not parsed.path.startswith(valid_path_starts):
-            return False
-        return True
-    except Exception:
+        
+    # Strip any URL parameters (e.g., ?igshid=123) for validation
+    clean_url = url.split('?')[0].strip()
+    
+    # Strict Regex pattern: Must be https, instagram.com, specific paths (reel/reels/p/tv), and valid ID characters
+    pattern = re.compile(r'^https:\/\/(www\.)?instagram\.com\/(reel|reels|p|tv)\/[A-Za-z0-9_-]+\/?$')
+    
+    if not pattern.match(clean_url):
         return False
+        
+    return True
 
 def get_cookie_path():
     """Safely resolve an absolute path to a dynamic cookies file from the 'instagram cookies' folder."""
@@ -101,18 +100,24 @@ def process():
     # Handle both JSON payloads (from Blogger fetch API) and Form Data (from native HTML form)
     if request.is_json:
         data = request.get_json(silent=True) or {}
-        url = data.get('url', '').strip()
+        url = data.get('url', '')
     else:
-        url = request.form.get('url', '').strip()
+        url = request.form.get('url', '')
+        
+    if not isinstance(url, str):
+        url = ''
+        
+    url = url.strip()
     
+    # Strictly validate against our regex before proceeding
     if not validate_instagram_url(url):
-        return jsonify({'success': False, 'message': 'Please provide a valid, secure Instagram URL (e.g., https://www.instagram.com/reel/...).'})
+        return jsonify({'success': False, 'message': 'Please provide a valid, secure Instagram Reel or Post URL (e.g., https://www.instagram.com/reel/...).'})
 
-    # Clean the URL to remove tracking parameters that cause issues
-    if '?' in url:
-        url = url.split('?')[0]
+    # Clean the URL: Completely drop tracking parameters as they are unneeded and risky
+    safe_url = url.split('?')[0]
+    
     # Normalize /reels/ to /reel/ as yt-dlp prefers the singular format
-    url = url.replace('/reels/', '/reel/')
+    safe_url = safe_url.replace('/reels/', '/reel/')
 
     # Configure yt-dlp options just to fetch metadata
     ydl_opts = {
@@ -132,8 +137,8 @@ def process():
     try:
         # Extract info without downloading the heavy video file yet
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            print(f"[*] Extracting metadata for: {url}", file=sys.stderr)
-            info_dict = ydl.extract_info(url, download=False)
+            print(f"[*] Extracting metadata for: {safe_url}", file=sys.stderr)
+            info_dict = ydl.extract_info(safe_url, download=False)
             
             title = info_dict.get('title') or info_dict.get('description') or 'Instagram Video'
             if len(title) > 65:
@@ -152,8 +157,8 @@ def process():
             else:
                 filesize_formatted = "Size Unknown"
                 
-            # Generate a secure, time-limited token for the actual download
-            token = serializer.dumps(url)
+            # Generate a secure, time-limited token storing only our strictly sanitized URL
+            token = serializer.dumps(safe_url)
             
             video_data = {
                 'title': title,
@@ -181,8 +186,8 @@ def process():
 def download(token):
     """Step 2: Handle the actual video download using the validated token. Returns JSON on error for the SPA."""
     try:
-        # Decode the token (max age: 1 hour)
-        url = serializer.loads(token, max_age=3600)
+        # Decode the token (max age: 1 hour) - URL inside is already sanitized from Step 1
+        safe_url = serializer.loads(token, max_age=3600)
     except BadSignature:
         return jsonify({'success': False, 'message': 'Your download link has expired or is invalid. Please start over.'}), 400
 
@@ -204,10 +209,10 @@ def download(token):
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            print(f"[*] Downloading file for: {url}", file=sys.stderr)
-            info_dict = ydl.extract_info(url, download=True)
+            print(f"[*] Downloading file for: {safe_url}", file=sys.stderr)
+            info_dict = ydl.extract_info(safe_url, download=True)
             
-            # Explicitly sanitize and map post title/description to filename
+            # Explicitly sanitize and map post title/description to filename to prevent directory traversal or injection
             raw_title = info_dict.get('title') or info_dict.get('description') or 'InstaGrabber_Video'
             safe_title = re.sub(r'[^\w\s-]', '', raw_title).strip()
             safe_title = re.sub(r'[-\s]+', '-', safe_title)
