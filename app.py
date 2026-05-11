@@ -4,6 +4,7 @@ import shutil
 import tempfile
 import urllib.parse
 import random
+import sys
 from io import BytesIO
 from flask import Flask, render_template, request, send_file, jsonify, send_from_directory
 from flask_cors import CORS
@@ -63,18 +64,25 @@ def get_cookie_path():
     base_dir = os.path.dirname(os.path.abspath(__file__))
     cookies_dir = os.path.join(base_dir, 'instagram cookies')
     
+    print(f"[*] Looking for cookies in: {cookies_dir}", file=sys.stderr)
+    
     if not os.path.exists(cookies_dir) or not os.path.isdir(cookies_dir):
+        print("[!] Cookie directory not found!", file=sys.stderr)
         return None
         
     # Dynamically find all .txt files in the cookies directory
     cookie_files = [f for f in os.listdir(cookies_dir) if f.endswith('.txt')]
     
     if not cookie_files:
+        print("[!] No .txt files found in cookie directory!", file=sys.stderr)
         return None
         
     # Randomly select a cookie file to distribute usage and avoid rate limits
     selected_cookie = random.choice(cookie_files)
-    return os.path.join(cookies_dir, selected_cookie)
+    final_path = os.path.join(cookies_dir, selected_cookie)
+    
+    print(f"[*] Selected cookie file: {final_path}", file=sys.stderr)
+    return final_path
 
 @app.route('/', methods=['GET'])
 def index():
@@ -112,10 +120,13 @@ def process():
     cookie_path = get_cookie_path()
     if cookie_path:
         ydl_opts['cookiefile'] = cookie_path
+    else:
+        print("[!] Proceeding WITHOUT cookies.", file=sys.stderr)
 
     try:
         # Extract info without downloading the heavy video file yet
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            print(f"[*] Extracting metadata for: {url}", file=sys.stderr)
             info_dict = ydl.extract_info(url, download=False)
             
             title = info_dict.get('title') or info_dict.get('description') or 'Instagram Video'
@@ -145,16 +156,19 @@ def process():
                 'token': token
             }
             
+            print("[*] Metadata extracted successfully.", file=sys.stderr)
             return jsonify({'success': True, 'data': video_data})
             
     except yt_dlp.utils.DownloadError as e:
         error_msg = str(e).lower()
+        print(f"[!] DownloadError in process(): {error_msg}", file=sys.stderr)
         if 'private video' in error_msg or 'login' in error_msg:
             return jsonify({'success': False, 'message': 'This video is private, restricted, or requires authentication.'})
         else:
             return jsonify({'success': False, 'message': 'Unable to fetch video details. Ensure the URL is correct and public.'})
         
     except Exception as e:
+        print(f"[!] Unexpected error in process(): {str(e)}", file=sys.stderr)
         return jsonify({'success': False, 'message': 'An unexpected error occurred while processing the video.'})
 
 @app.route('/download/<token>', methods=['GET'])
@@ -184,6 +198,7 @@ def download(token):
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            print(f"[*] Downloading file for: {url}", file=sys.stderr)
             info_dict = ydl.extract_info(url, download=True)
             
             # Explicitly sanitize and map post title/description to filename
@@ -209,7 +224,8 @@ def download(token):
             io_stream.seek(0)
             
             shutil.rmtree(temp_dir)
-
+            
+            print("[*] Download successful, sending file to user.", file=sys.stderr)
             return send_file(
                 io_stream,
                 as_attachment=True,
@@ -218,6 +234,7 @@ def download(token):
             )
             
     except Exception as e:
+        print(f"[!] Error in download(): {str(e)}", file=sys.stderr)
         if os.path.exists(temp_dir):
             shutil.rmtree(temp_dir)
         return jsonify({'success': False, 'message': 'Failed to download the video file. It may be restricted.'}), 500
